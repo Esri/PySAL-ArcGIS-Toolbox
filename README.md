@@ -1,16 +1,37 @@
 # PySAL-ArcGIS-Toolbox
+Infrastructure designed to enhance the usability of 
+innovative spatial econometric methods within the
+Python Spatial Analysis Library (PySAL). 
+The integration framework leverages the user interface 
+and data management capabilities
+provided in ArcGIS making analytical techniques
+developed in PySAL more accessible to the general GIS User.
 
 ## Features
+
+* Ordinary Least Squares
+* LM Tests for Alternative Spatial Model Selection
+* Spatial Error Model
+* Spatial Lag Model
+* Spatial Weights Utilities
 
 ## Instructions
 
 ## Requirements
 
+* ArcGIS 
+* SciPy
+* PySAL
+
 ## Resources
+
+* [Integrating Open-Source Statistical Packages with ArcGIS (UC2012)](http://video.esri.com/watch/1925/integrating-open_dash_source-statistical-packages-with-arcgis)
+* [Spatial Statistics Resources Blog](http://blogs.esri.com/esri/arcgis/2010/07/13/spatial-statistics-resources/)
+
 
 ## Issues
 
-Find a bug or want to request a new feature?  Please let us know by submitting an issue.
+* Not properly working for all GAL Formatted Weights Files
 
 ## Contributing
 
