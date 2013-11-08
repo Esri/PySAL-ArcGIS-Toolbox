@@ -164,7 +164,7 @@ def text2Weights(weightsFile, master2Order = None):
                             else:
                                 neighs = [ int(i) for i in line.strip().split() ]
                             neighDict[orderID] = neighs
-                            weightDict[orderID] = [1. for i in neighs]
+                            weightDict[orderID] = list(NUM.ones(len(neighs)))
                         except:
                             msg = "A unique ID entry was not found in the spatial dataset! Invalid GAL file..."
                             ARCPY.AddError(msg)
@@ -260,4 +260,8 @@ def text2Weights(weightsFile, master2Order = None):
                 neighDict[orderID] = []
                 weightDict[orderID] = []
 
-    return W(neighDict, weightDict)
+    w = W(neighDict, weightDict)
+    if inType == ".GAL":
+        w.transform = 'r'
+
+    return w
