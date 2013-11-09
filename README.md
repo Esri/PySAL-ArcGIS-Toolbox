@@ -29,9 +29,6 @@ developed in PySAL more accessible to the general GIS User.
 * [Spatial Statistics Resources Blog](http://blogs.esri.com/esri/arcgis/2010/07/13/spatial-statistics-resources/)
 
 
-## Issues
-
-* Not properly working for all GAL Formatted Weights Files
 
 ## Contributing
 
