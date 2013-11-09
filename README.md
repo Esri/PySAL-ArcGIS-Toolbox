@@ -58,9 +58,9 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
 
 #### From GitHub
 
-    1. Clone the latest **PySAL** repository: [PySAL GitHub Site](https://github.com/pysal/pysal).  
+   1. Clone the latest **PySAL** repository: [PySAL GitHub Site](https://github.com/pysal/pysal).  
        Please note the directory you cloned it to: E.g. **C:\Data\git**.
-    1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
+   1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
        to your Python Path using the
        **desktop10.x.pth** file that the ArcGIS Installation Process created.
        The file is located in your **$PYTHONHOME\Lib\site-packages**
@@ -69,16 +69,16 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
 
 ### Step 4: PySAL-ArcGIS-Toolbox Setup
 
-    1. Clone the latest **PySAL-ArcGIS-Toolbox** repository: 
+   1. Clone the latest **PySAL-ArcGIS-Toolbox** repository: 
        [PySAL-ArcGIS-Toolbox GitHub Site](https://github.com/Esri/PySAL-ArcGIS-Toolbox).  
-    1. If you are only going to use the Toolbox and supporting scripts as
+   1. If you are only going to use the Toolbox and supporting scripts as
        **ArcGIS Script Tools** then you do not need to continue with the 
        steps below.  However, if you want to be able to call the functions
        provided by this project from within the **Python Window** or
        **Terminal** then you must
        add the **PySAL-ArcGIS-Toolbox\Scripts** directory to your **Python Path** 
        the same way you did this for **PySAL** in **Step 3 (GitHub Version)**.  
-    1. Append the base **PySAL-ArcGIS-Toolbox** directory
+   1. Append the base **PySAL-ArcGIS-Toolbox** directory
        (E.g. **C:\Data\git\PySAL-ArcGIS-Toolbox**) 
        to your **Python Path** using the
        **desktop10.x.pth** file that the **ArcGIS Installation Process** created.
