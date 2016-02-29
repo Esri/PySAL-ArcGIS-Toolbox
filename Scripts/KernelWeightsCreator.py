@@ -1,15 +1,9 @@
-'''
-Created on 2011-9-23
+"""
+Create Kernel-based Spatial Weights File.
 
-The goal of this python script is to utilize the arcpy module,
-to get access to the functionality of ArcGIS geoprocessing,
-and serve as the functional basis of pysal weights plugin in ArcMap.
+Author(s): Xun Li, Xing Kang, Sergio Rey
+"""
 
-@author: Xing Kang
-'''
-
-EXTENSIONS = ['GAL', 'GWT', 'SWM']
-### imports related library ###
 import arcpy as ARCPY
 import pysal as PYSAL
 from pysal.weights.Distance import Kernel
@@ -18,13 +12,11 @@ import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 import WeightsUtilities as WU
 
+EXTENSIONS = ['KWT', 'SWM']
 KERNELTYPE = ['UNIFORM', 'TRIANGULAR', 'QUADRATIC', 'QUARTIC', 'GAUSSIAN']
+
 def setupParameters():
-    """
-    Basic idea is to get parameters from user input in the dialog,
-    and execute associated weight matrix creating procedure
-    based on user preference.
-    """
+    """ Setup Parameters for Kernel-based Weights Creation """
     inputFC = ARCPY.GetParameterAsText(0)
     outputFile = ARCPY.GetParameterAsText(1)
     kernelType = ARCPY.GetParameterAsText(2).upper()
@@ -35,85 +27,114 @@ def setupParameters():
         ARCPY.AddError("Kernel type is not in the predefined list...")
         raise SystemExit()
 
-    ARCPY.SetProgressor("default", "Loading features from dataset...")
-    ssdo = SSDO.SSDataObject(inputFC)
-    masterField = idField
-    if not idField:
-        outputExt = AUTILS.returnWeightFileType(outputFile)
-        if outputExt != EXTENSIONS[0]:
-            msg = 'The unique ID Field is required to create GWT and/or SWM spatial weights files...'
+    #### Run Kernel Weights Creation ####
+    kernW = KernelW_PySAL(inputFC, outputFile, kernelType, neighborNum, idField)
+    
+    #### Create Output ####
+    kernW.createOutput()
+    
+class KernelW_PySAL(object):
+    """ Create Kernel-based Spatial Weights Using PySAL """
+    
+    def __init__(self, inputFC, outputFile, kernelType, neighborNum, idField):
+        
+        #### Set Initial Attributes ####
+        UTILS.assignClassAttr(self, locals())
+
+        #### Set Object for Weights Creation ####
+        self.ssdo = None
+        self.weightObj = None
+        self.outputExt = AUTILS.returnWeightFileType(outputFile)
+        
+        #### Initialize Data ####
+        self.initialize()
+
+        #### Build Weights ####
+        self.buildWeights()
+
+    def initialize(self):       
+        """Performs additional validation and populates the 
+        SSDataObject."""
+        ARCPY.SetProgressor("default", \
+                            "Starting to create kernel-based weights. "
+                            "Loading features...")
+        
+        #### Shorthand Attributes ####
+        idField = self.idField
+        inputFC = self.inputFC
+        
+        #### Create SSDataObject ####
+        self.ssdo = SSDO.SSDataObject(inputFC)
+        ssdo = self.ssdo
+        
+        #### Raise Error If Valid Unique ID Not Provided ####
+        masterField = idField
+        if not masterField:
+            msg = ("The unique ID Field is required to create KWT and/or "
+                   "SWM spatial weights files...")
             ARCPY.AddError(msg)
             raise SystemExit()
-        else:
-            msg = 'The unique ID Field is not provided. The zero-based indexing order will be used to create the spatial weights file.'
-            ARCPY.AddWarning(msg)
-            masterField = UTILS.setUniqueIDField(ssdo)
-    ssdo.obtainData(masterField)
+            
+        #### Populate SSDO with Data ####
+        ssdo.obtainData(masterField)
 
-    ARCPY.SetProgressor("default", "Constructing spatial weights matrix...")
-    dataArray = None
-    weightObj = None
-    if idField and AUTILS.returnWeightFileType(outputFile) != 'GAL':
-        masterIDs = ssdo.master2Order.keys()
-        masterIDs.sort()
-        mapper = [ssdo.master2Order[id] for id in masterIDs]
-        dataArray = ssdo.xyCoords[mapper]
-        weightObj = Kernel(dataArray, fixed=False, k=neighborNum, function=kernelType, ids=masterIDs)
-    else:
+    def buildWeights(self):
+        """Performs Distance-based Weights Creation"""
+        ARCPY.SetProgressor("default", "Constructing spatial weights matrix...")
+        
+        #### Shorthand Attributes ####
+        kernelType = self.kernelType
+        neighborNum = self.neighborNum
+        idField = self.idField
+        outputExt = self.outputExt
+        ssdo = self.ssdo
+        
+        #### Create Kernel-based WeightObj (0-based IDs) ####
         dataArray = ssdo.xyCoords
-        weightObj = Kernel(dataArray, fixed=False, k=neighborNum, function=kernelType)
-
-    if idField:
-        weightObj._varName = idField
-
-    createWeightFile(outputFile, weightObj, ssdo, setVarName=(idField != None))
-
-def createWeightFile(outputFile, weightObj, ssdo, setVarName=False, rowStandard = False):
-    ARCPY.SetProgressor("default", "Writing Spatial Weights to Output File...")
-    ext = AUTILS.returnWeightFileType(outputFile)
-
-    if ext == EXTENSIONS[0] and setVarName:
-        outputWriter = open(outputFile, 'w')
-
-        # write header in the first line
-        line = [str(0), str(len(weightObj.id_order)), weightObj._varName, 'UNKNOWN\n']
-        line = " ".join(line)
-        outputWriter.write(line)
-        masterIDs = weightObj.neighbors.keys()
-        masterIDs.sort()
-        for id in masterIDs:
-            neighbors = weightObj.neighbors[id]
-            line = [str(id), str(len(neighbors))]
-            line = " ".join(line) + "\n"
-            outputWriter.write(line)
-            if neighbors != None:
-                line = ''
-                contents = []
-                for item in neighbors:
-                    contents.append(str(item))
-                if contents:
-                    line = " ".join(contents)
-                line += "\n"
-                outputWriter.write(line)
-        outputWriter.close()
-    else:
-        if ext != EXTENSIONS[2]:
+        masterIDs = range(ssdo.numObs)
+        if idField: 
+            masterIDs = [ssdo.order2Master[i] for i in masterIDs]
+        weightObj = Kernel(dataArray, fixed=True, k=neighborNum, \
+                           function=kernelType, ids=masterIDs)
+    
+        #### Save weightObj Class Object for Writing Result #### 
+        self.weightObj = weightObj 
+    
+    def createOutput(self, rowStandard = False):
+        """ Write Kernel-based Weights to File. """
+        ARCPY.SetProgressor("default", \
+                            "Writing Spatial Weights to Output File...")
+        
+        #### Shorthand Attributes ####
+        ssdo = self.ssdo
+        idField = self.idField
+        weightObj = self.weightObj
+        outputFile = self.outputFile
+        outputExt = self.outputExt
+        
+        #### Get File Name Without Extension ####
+        fileName = ssdo.inName.rsplit('.', 1)[0]
+        
+        if outputExt == EXTENSIONS[0]:
+            # KWT file
             outputWriter = PYSAL.open(outputFile, 'w')
-            if setVarName:
-                outputWriter.varName = weightObj._varName
+            outputWriter.shpName = fileName
+            if idField:
+                outputWriter.varName = idField
             outputWriter.write(weightObj)
             outputWriter.close()
         else:
-            if setVarName:
-                masterField = weightObj._varName
-            else:
-                masterField = 'UNKNOWN'
-            swmWriter = WU.SWMWriter(outputFile, masterField, ssdo.spatialRefName, weightObj.n, rowStandard)
-            masterIDs = weightObj.neighbors.keys()
+            # SWM file
+            masterField = idField if idField else 'UNKNOWN'
+            swmWriter = WU.SWMWriter(outputFile, masterField, \
+                                     ssdo.spatialRefName, weightObj.n, \
+                                     rowStandard)
+            masterIDs = list(weightObj.neighbors.keys())
             masterIDs.sort()
             for key in masterIDs:
-                swmWriter.swm.writeEntry(key, weightObj.neighbors[key], weightObj.weights[key])
+                swmWriter.swm.writeEntry(key, weightObj.neighbors[key], \
+                                         weightObj.weights[key])
             swmWriter.close()
-
+    
 if __name__ == '__main__':
     setupParameters()

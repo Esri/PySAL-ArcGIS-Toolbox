@@ -14,7 +14,7 @@ import SSUtilities as UTILS
 import sys as SYS
 import pysal2ArcUtils as AUTILS
 
-FIELDNAMES = ["Estimated", "Residual", "StdResid", "PredRes"]
+FIELDNAMES = ["Predy", "Resid"]
 
 def setupParameters():
 
@@ -30,10 +30,10 @@ def setupParameters():
     #### Create SSDataObject ####
     fieldList = [depVarName] + indVarNames
     ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    masterField = UTILS.setUniqueIDField(ssdo, weightsFile = weightsFile)
-
+    masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
+    
     #### Populate SSDO with Data ####
-    ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
+    ssdo.obtainData(masterField, fieldList) 
 
     #### Resolve Weights File ####
     patW = AUTILS.PAT_W(ssdo, weightsFile)
@@ -60,8 +60,10 @@ class GMError_PySAL(object):
         self.calculate()
 
     def initialize(self):
-        """Performs additional validation and populates the 
-        SSDataObject."""
+        """Performs additional validation and populates the SSDataObject."""
+        
+        ARCPY.SetProgressor("default", ("Starting to perform Spatial Error "
+                                        "regression. Loading features..."))
 
         #### Shorthand Attributes ####
         ssdo = self.ssdo
@@ -112,8 +114,9 @@ class GMError_PySAL(object):
     def calculate(self):
         """Performs GM Error Model and related diagnostics."""
 
-        ARCPY.SetProgressor("default", "Executing spatial error model...")
+        ARCPY.SetProgressor("default", "Executing Spatial Error regression...")
 
+        #### Perform GM_Error/GMError_Het regression ####
         if not self.useHAC:
             error = PYSAL.spreg.GM_Error(self.y, self.x, w = self.w, 
                                          name_y = self.depVarName,
@@ -126,27 +129,22 @@ class GMError_PySAL(object):
                                              name_x = self.indVarNames, 
                                              name_w = self.wName,
                                              name_ds = self.ssdo.inputFC)
-
+            for i in range(len(FIELDNAMES)):
+                FIELDNAMES[i] = "Het" + FIELDNAMES[i]
         self.error = error
-        self.dof = self.ssdo.numObs - self.k - 1
-        sdCoeff = NUM.sqrt(1.0 * self.dof / self.n)
-        bottom = error.e_filtered.std()
-        self.resData = sdCoeff * error.e_filtered / bottom
         ARCPY.AddMessage(self.error.summary)
 
     def createOutput(self, outputFC):
 
+        #### Build fields for output table ####
         self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
-        candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
-                                                "Double", self.error.predy)
-        candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
-                                           "Double", self.error.e_filtered)
-        candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
-                                                    "Double", self.resData)
-        candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
-                                                    "Double", self.error.u)
-
+        candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0], 
+                                                             "Double", 
+                                                             self.error.predy)
+        candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1], 
+                                                             "Double", 
+                                                             self.error.u)
         self.ssdo.output2NewFC(outputFC, candidateFields, 
                                appendFields = self.allVars)
 
@@ -155,11 +153,13 @@ class GMError_PySAL(object):
         try:
             renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
             if renderType == 0:
-                renderLayerFile = "StdResidPoints.lyr"
+                renderLayerFile = "ResidPoints.lyr"
             elif renderType == 1:
-                renderLayerFile = "StdResidPolylines.lyr"
+                renderLayerFile = "ResidPolylines.lyr"
             else:
-                renderLayerFile = "StdResidPolygons.lyr"
+                renderLayerFile = "ResidPolygons.lyr"
+            if FIELDNAMES[0].startswith('Het'):
+                renderLayerFile = "Het" + renderLayerFile
             fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
             params[4].Symbology = fullRLF
         except:

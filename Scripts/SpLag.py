@@ -14,7 +14,7 @@ import SSDataObject as SSDO
 import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 
-FIELDNAMES = ["Estimated", "Residual", "StdResid", "PredRes"]
+FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
 
 def setupParameters():
 
@@ -29,7 +29,7 @@ def setupParameters():
     #### Create SSDataObject ####
     fieldList = [depVarName] + indVarNames
     ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    masterField = UTILS.setUniqueIDField(ssdo, weightsFile = weightsFile)
+    masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
 
     #### Populate SSDO with Data ####
     ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
@@ -37,11 +37,11 @@ def setupParameters():
     #### Resolve Weights File ####
     patW = AUTILS.PAT_W(ssdo, weightsFile)
 
-    #### Run OLS ####
-    ols = GMLag_PySAL(ssdo, depVarName, indVarNames, patW)
+    #### Run SpLag ####
+    splag = GMLag_PySAL(ssdo, depVarName, indVarNames, patW)
 
     #### Create Output ####
-    ols.createOutput(outputFC)
+    splag.createOutput(outputFC)
 
 class GMLag_PySAL(object):
     """Computes linear regression via Ordinary Least Squares using PySAL."""
@@ -58,9 +58,11 @@ class GMLag_PySAL(object):
         self.calculate()
 
     def initialize(self):
-        """Performs additional validation and populates the 
-        SSDataObject."""
+        """Performs additional validation and populates the SSDataObject."""
 
+        ARCPY.SetProgressor("default", ("Starting to perform Spatial Lag "
+                                        "regression. Loading features..."))
+        
         #### Shorthand Attributes ####
         ssdo = self.ssdo
 
@@ -110,24 +112,20 @@ class GMLag_PySAL(object):
     def calculate(self):
         """Performs GM Error Model and related diagnostics."""
 
-        ARCPY.SetProgressor("default", "Executing spatial lag model...")
+        ARCPY.SetProgressor("default", "Executing Spatial Lag regression...")
 
+        #### Perform GM_Lag regression ####
         self.lag = PYSAL.spreg.GM_Lag(self.y, self.x, w = self.w, 
                                       robust = 'white', spat_diag = True, 
                                       name_y = self.depVarName,
                                       name_x = self.indVarNames, 
                                       name_w = self.wName,
                                       name_ds = self.ssdo.inputFC)
-        
-        self.dof = self.ssdo.numObs - self.k - 1
-        sdCoeff = NUM.sqrt(1.0 * self.dof / self.n)
-        bottom = self.lag.u.std()
-        self.resData = sdCoeff * self.lag.u / bottom
         ARCPY.AddMessage(self.lag.summary)
 
     def createOutput(self, outputFC):
 
-        #### Resolve BUG? in Spatial Lag ####
+        #### Build fields for output table ####
         if self.lag.e_pred == None:
             ePredOut = NUM.ones(self.ssdo.numObs) * NUM.nan
         else:
@@ -136,14 +134,17 @@ class GMLag_PySAL(object):
         self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
         candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
-                                                  "Double", self.lag.predy)
+                                                             "Double", 
+                                                             self.lag.predy)
         candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
-                                                      "Double", self.lag.u)
+                                                             "Double", 
+                                                             self.lag.u)
         candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
-                                                    "Double", self.resData)
+                                                             "Double", 
+                                                             self.lag.predy_e)
         candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
-                                                        "Double", ePredOut)
-
+                                                             "Double", 
+                                                             ePredOut)
         self.ssdo.output2NewFC(outputFC, candidateFields, 
                                appendFields = self.allVars)
 
@@ -152,11 +153,11 @@ class GMLag_PySAL(object):
         try:
             renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
             if renderType == 0:
-                renderLayerFile = "StdResidPoints.lyr"
+                renderLayerFile = "ResidPoints.lyr"
             elif renderType == 1:
-                renderLayerFile = "StdResidPolylines.lyr"
+                renderLayerFile = "ResidPolylines.lyr"
             else:
-                renderLayerFile = "StdResidPolygons.lyr"
+                renderLayerFile = "ResidPolygons.lyr"
             fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
             params[4].Symbology = fullRLF
         except:
