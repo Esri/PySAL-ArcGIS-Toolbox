@@ -330,6 +330,41 @@ def text2Weights(weightsFile, master2Order = None):
     w._varName = uid
     return w
 
+def lmChoice(result, criticalValue):
+    """Makes choice of aspatial/spatial model based on LeGrange Multiplier
+    stats from an OLS result.
+
+    INPUTS:
+    result (object): instance of PySAL OLS Model with spatial weights given.
+    criticalValue (float): significance value
+
+    RETURN:
+    category (str): ['MIXED', 'LAG', 'ERROR', 'OLS']
+    """
+
+    sigError = result.lm_error[1] < criticalValue
+    sigLag = result.lm_lag[1] < criticalValue
+    sigBoth = sigError and sigLag
+    if sigLag or sigError:
+        sigErrorRob = result.rlm_error[1] < criticalValue
+        sigLagRob = result.rlm_lag[1] < criticalValue
+        sigBothRob = sigErrorRob and sigLagRob
+        if sigBothRob:
+            return "MIXED"
+        else:
+            if sigLagRob:
+                return "LAG"
+            if sigErrorRob:
+                return "ERROR"
+            if sigBoth:
+                return "MIXED"
+            else:
+                if sigLag:
+                    return "LAG"
+                return "ERROR"
+    else:
+        return "OLS"
+
 def autospace(y,x,w,gwk,opvalue=0.01,combo=False,name_y=None,name_x=None,
               name_w=None,name_gwk=None,name_ds=None):
     """
@@ -391,52 +426,22 @@ def autospace(y,x,w,gwk,opvalue=0.01,combo=False,name_y=None,name_x=None,
     else:
         Hetflag = False
     results['heteroskedasticity'] = Hetflag
-    LMError1 = r1.lm_error[1]
-    LMLag1 = r1.lm_lag[1]
-    if LMError1 < opvalue and LMLag1 < opvalue:
-        RLMError1 = r1.rlm_error[1]
-        RLMLag1 = r1.rlm_lag[1]
-        if RLMError1 < opvalue and RLMLag1 < opvalue:
-            results['spatial lag']=True
-            results['spatial error']=True
-            if not combo:
-                r2 = twosls_sp.GM_Lag(y,x,w=w,gwk=gwk,robust='hac',name_y=name_y,
-                                      name_x=name_x,name_w=name_w,name_gwk=name_gwk,
-                                      name_ds=name_ds)
-                results['final model']="Spatial Lag with Spatial Error - HAC"
-            elif Hetflag:
-                r2 = error_sp_het.GM_Combo_Het(y,x,w=w,name_y=name_y,name_x=name_x,
-                                               name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Lag with Spatial Error - Heteroskedastic"
-            else:
-                r2 = error_sp_hom.GM_Combo_Hom(y,x,w=w,name_y=name_y,name_x=name_x,
-                                               name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Lag with Spatial Error - Homoskedastic"
-        elif RLMError1 < opvalue:
-            results['spatial error']=True
-            if Hetflag:
-                r2 = error_sp_het.GM_Error_Het(y,x,w,name_y=name_y,name_x=name_x,
-                                               name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Error - Heteroskedastic"
-            else:
-                r2 = error_sp_hom.GM_Error_Hom(y,x,w,name_y=name_y,name_x=name_x,
-                                               name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Error - Homoskedastic"
-        elif RLMLag1 < opvalue:
-            results['spatial lag']=True
-            if Hetflag:
-                r2 = twosls_sp.GM_Lag(y,x,w=w,robust='white',
-                                      name_y=name_y,name_x=name_x,
-                                      name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Lag - Heteroskedastic"
-            else:
-                r2 = twosls_sp.GM_Lag(y,x,w=w,name_y=name_y,name_x=name_x,
-                                      name_w=name_w,name_ds=name_ds)
-                results['final model']="Spatial Lag - Homoskedastic"
+    model = lmChoice(r1, opvalue)
+    if model == "MIXED":
+        if not combo:
+            r2 = twosls_sp.GM_Lag(y,x,w=w,gwk=gwk,robust='hac',name_y=name_y,
+                                  name_x=name_x,name_w=name_w,name_gwk=name_gwk,
+                                  name_ds=name_ds)
+            results['final model']="Spatial Lag with Spatial Error - HAC"
+        elif Hetflag:
+            r2 = error_sp_het.GM_Combo_Het(y,x,w=w,name_y=name_y,name_x=name_x,
+                                           name_w=name_w,name_ds=name_ds)
+            results['final model']="Spatial Lag with Spatial Error - Heteroskedastic"
         else:
-            results['final model']="Robust Tests not Significant - Check Model"
-            r2 = None
-    elif LMError1 < opvalue:
+            r2 = error_sp_hom.GM_Combo_Hom(y,x,w=w,name_y=name_y,name_x=name_x,
+                                           name_w=name_w,name_ds=name_ds)
+            results['final model']="Spatial Lag with Spatial Error - Homoskedastic"
+    elif model == "ERROR":
         results['spatial error']=True
         if Hetflag:
             r2 = error_sp_het.GM_Error_Het(y,x,w,name_y=name_y,name_x=name_x,
@@ -446,7 +451,7 @@ def autospace(y,x,w,gwk,opvalue=0.01,combo=False,name_y=None,name_x=None,
             r2 = error_sp_hom.GM_Error_Hom(y,x,w,name_y=name_y,name_x=name_x,
                                            name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Error - Homoskedastic"
-    elif LMLag1 < opvalue:
+    elif model == "LAG":
         results['spatial lag']=True
         if Hetflag:
             r2 = twosls_sp.GM_Lag(y,x,w=w,robust='white',

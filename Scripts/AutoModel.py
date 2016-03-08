@@ -194,7 +194,7 @@ class AutoSpace_PySAL(object):
             self.oPredy = finalModel.predy
             self.oResid = finalModel.u
             self.oPredy_e = finalModel.predy_e
-            self.oE_Predy = finalModel.e_pred if finalModel.e_pred != None else \
+            self.oE_Predy = finalModel.e_pred if finalModel.e_pred is not None else \
                 NUM.ones(self.ssdo.numObs) * NUM.nan
             summary = finalModel.summary
             
