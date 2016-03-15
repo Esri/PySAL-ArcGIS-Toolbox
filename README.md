@@ -30,9 +30,12 @@ install:
 
 |ArcGIS	|Python	|NumPy	|Matplotlib |
 |:------|:------|:------|:-----------|
-|10.1	|2.7.2	|1.6.1	|1.1.0 |
-|10.2	|2.7.3	|1.6.1	|1.1.1 |
-|10.2.1 |2.7.5  |1.7.1  |1.3.0 |
+|10.1	  | 2.7.2 | 1.6.1	| 1.1.0 |
+|10.2   | 2.7.3 | 1.6.1	| 1.1.1 |
+|10.2.1 | 2.7.5 | 1.7.1 | 1.3.0 |
+|10.3   | 2.7.5 | 1.7.1 | 1.3.0 | 
+|10.3.1 | 2.7.8 | 1.7.1 | 1.3.0 |
+|10.4   | 2.7.10| 1.9.2 | 1.4.3 |
 
 Note that in  the **PyParsing Python Package** is no longer installed with this version of **Matplotlib 1.3.0**, however, it is required in order for **Matplotlib** to function
 properly.  It is advised that you install **PyParsing 1.5.7** if you are managing your own **Python Installation**.   
