@@ -17,7 +17,40 @@ developed in **PySAL** more accessible to the general **GIS** User.
 
 ## Instructions
 
-### Step 1: Basic ArcGIS - Python Setup
+-------------
+
+### ArcGIS Pro with Conda (1.3+)
+Conda makes the installation of additional Python Packages simple.  See
+[The Python Package Manager](http://pro.arcgis.com/en/pro-app/arcpy/get-started/what-is-conda.htm)
+for a detailed explanation.  For Pro 1.4 and beyond, Pro Users can install
+**pysal** through the GUI in the *Python* tab in the *Project* options.  All
+others must install **pysal** using the command-line: 
+[Using ArcGIS .bat Files to Install Conda Packages](http://pro.arcgis.com/en/pro-app/arcpy/get-started/using-conda-with-arcgis-pro.htm).  `conda install pysal` is the only command required once you have initialized the *arcgispro-py3* environment.
+
+-------------
+
+### ArcGIS Pro (1.0 - 1.2) and ArcGIS Desktop 10.4.1+
+#### Step 1: Add Full Python Installation (Pro Users Only)
+The first several releases of ArcGIS Pro came with a stripped down version of
+Python.  This made the footprint on disk small but denied the User the ability
+to run Python Scripts from a terminal or IDE.  If you find yourself in this
+group please [log-in and download full Python Distribution](http://links.esri.com/pro/download/current)
+
+#### Step 2: Install pysal Using pip
+**SciPy** is a required Python Package for **pysal**.  Users with
+installations from this section (and the previous) already have **SciPy** in their Python Setup.
+As such, the only additional package required is **pysal**.  You must use a
+[pip](https://pip.pypa.io/en/stable/) command to install the software, but
+first you need to identify the location the of the script.  For most ArcGIS
+Desktop Users the **pip.exe** resides in the **C:\Python27\Desktop10.x/Scripts**
+directory.  The corresponding directory for Pro Users is typically **C:\Python34\Desktop10.x\Scripts**.
+Open a terminal and change into this directory and execute `pip
+install pysal`.
+
+-------------
+
+### ArcGIS Desktop 10.1 - 10.4
+#### Step 1: Basic ArcGIS - Python Setup
 For the majority of Users,
 the **ArcGIS Installation Process** will have already installed the 
 correct version of **Python** and the supporting packages and therefore can skip to the next
@@ -40,7 +73,7 @@ install:
 Note that in  the **PyParsing Python Package** is no longer installed with this version of **Matplotlib 1.3.0**, however, it is required in order for **Matplotlib** to function
 properly.  It is advised that you install **PyParsing 1.5.7** if you are managing your own **Python Installation**.   
 
-### Step 2: SciPy Setup
+#### Step 2: SciPy Setup
 This project requires the **SciPy Python Package**, however, confusion/problems
 may arise due to the emergence of the **SciPy Stack**.  The latter package
 contains an all-in-one suite of packages to support analytics in **Python**, yet it
@@ -55,12 +88,9 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
 
 [Download SciPy](http://sourceforge.net/projects/scipy/files/scipy)
 
-### Step 3: PySAL Setup
+-------------
 
-#### As a Python Package
-
-#### From GitHub
-
+### Alternative PySAL Setup Using GitHub for Non-Conda Setups
    1. Clone the latest **PySAL** repository: [PySAL GitHub Site](https://github.com/pysal/pysal).  
        Please note the directory you cloned it to: E.g. **C:\Data\git**.
    1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
@@ -70,8 +100,9 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
        directory (Most common location is
        **C:\Python27\Desktop10.x\Lib\site-packages**).  
 
-### Step 4: PySAL-ArcGIS-Toolbox Setup
+-------------
 
+## PySAL-ArcGIS-Toolbox Setup Using GitHub
    1. Clone the latest **PySAL-ArcGIS-Toolbox** repository: 
        [PySAL-ArcGIS-Toolbox GitHub Site](https://github.com/Esri/PySAL-ArcGIS-Toolbox).  
    1. If you are only going to use the Toolbox and supporting scripts as
