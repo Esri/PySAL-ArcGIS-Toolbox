@@ -237,11 +237,11 @@ class AutoSpace_PySAL(object):
         candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
                                                              "Double", 
                                                              self.oResid)
-        if self.oPredy_e != None: 
+        if self.oPredy_e is not None: 
             candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
                                                                  "Double", 
                                                                  self.oPredy_e)
-        if self.oE_Predy != None:
+        if self.oE_Predy is not None:
             candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
                                                                  "Double", 
                                                                  self.oE_Predy)

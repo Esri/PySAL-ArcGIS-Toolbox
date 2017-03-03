@@ -200,7 +200,7 @@ class WeightConvertor(object):
             header = "%s %s %s %s\n" % \
                 (0, weightObj.n, uniqueID, 'UNKNOWN')
             outputWriter.write(header)
-            masterIDs = weightObj.neighbors.keys()
+            masterIDs = list(weightObj.neighbors.keys())
             masterIDs.sort()
             for id in masterIDs:
                 neighbors = weightObj.neighbors[id]

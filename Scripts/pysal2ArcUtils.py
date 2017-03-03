@@ -32,7 +32,7 @@ class PAT_W(object):
             self.w = swm2Weights(self.weightsFile, self.ssdo.master2Order)
         else:
             self.w = text2Weights(self.weightsFile, 
-                                 master2Order = self.ssdo.master2Order)
+                                  master2Order = self.ssdo.master2Order)
 
 def setUniqueIDField(ssdo, weightsFile):
     """Replace SSUTILITIES.setUniqueIDField to support flexible weights file 
@@ -232,7 +232,7 @@ def text2Weights(weightsFile, master2Order = None):
             
             # read next line for neighbor ids
             line = fi.readline()
-            if orderID != None:
+            if orderID is not None:
                 neighIDs = [int(i) for i in line.strip().split()]
                 if not adjust:
                     try:
