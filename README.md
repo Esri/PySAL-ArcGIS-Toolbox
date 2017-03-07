@@ -112,7 +112,8 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
        **Adding a Git Project to your ArcGIS Installation Python Path**.  
 
 # Adding a Git Project to your ArcGIS Installation Python Path
-   1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
+   1. Append the base **PySAL** directory (if you installed via git)
+       and **PySAL-ArcGIS-Toolbox** directory
        to your Python Path.  ArcGIS Desktop Users must add the path to the 
        **desktop10.x.pth** file that the ArcGIS Installation Process created.
        The file is located in your **$PYTHONHOME\Lib\site-packages**
@@ -123,8 +124,9 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
        **C:\Python34\Lib\site-packages** directory.  All other Pro users will
        be using the **arcgispro-py3** Conda environment and will find the **ArcGISPro.pth**
        file in the
-       **C:\ArcGIS\bin\Python\envs\arcgispro-py3\lib\site-packages**
+       **C:\$ARCHOME$\bin\Python\envs\arcgispro-py3\lib\site-packages**
        directory.
+
     1. Optionally, users may create their own personal **.pth** file(s) so
        that they do not mess with the original one that ArcGIS installs for
        them.  This is probably your safest bet and all you have to do is place
