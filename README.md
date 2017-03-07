@@ -93,16 +93,13 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
 ### Alternative PySAL Setup Using GitHub for Non-Conda Setups
    1. Clone the latest **PySAL** repository: [PySAL GitHub Site](https://github.com/pysal/pysal).  
        Please note the directory you cloned it to: E.g. **C:\Data\git**.
-   1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
-       to your Python Path using the
-       **desktop10.x.pth** file that the ArcGIS Installation Process created.
-       The file is located in your **$PYTHONHOME\Lib\site-packages**
-       directory (Most common location is
-       **C:\Python27\Desktop10.x\Lib\site-packages**).  
+   1. Follow the directions in the **Adding a Git Project to your ArcGIS Installation Python Path**
+      section below to place the path to the **PySAL** repository in your
+      **Python Path** .
 
 -------------
 
-## PySAL-ArcGIS-Toolbox Setup Using GitHub
+# PySAL-ArcGIS-Toolbox Setup Using GitHub
    1. Clone the latest **PySAL-ArcGIS-Toolbox** repository: 
        [PySAL-ArcGIS-Toolbox GitHub Site](https://github.com/Esri/PySAL-ArcGIS-Toolbox).  
    1. If you are only going to use the Toolbox and supporting scripts as
@@ -111,13 +108,29 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
        provided by this project from within the **Python Window** or
        **Terminal** then you must
        add the **PySAL-ArcGIS-Toolbox\Scripts** directory to your **Python Path** 
-       the same way you did this for **PySAL** in **Step 3 (GitHub Version)**.  
-   1. Append the base **PySAL-ArcGIS-Toolbox** directory
-       (E.g. **C:\Data\git\PySAL-ArcGIS-Toolbox**) 
-       to your **Python Path** using the
-       **desktop10.x.pth** file that the **ArcGIS Installation Process** created.
-       Again, the most common location is
+       using the directions outlined in section
+       **Adding a Git Project to your ArcGIS Installation Python Path**.  
+
+# Adding a Git Project to your ArcGIS Installation Python Path
+   1. Append the base **PySAL** directory (in above example: **C:\Data\git\pysal**) 
+       to your Python Path.  ArcGIS Desktop Users must add the path to the 
+       **desktop10.x.pth** file that the ArcGIS Installation Process created.
+       The file is located in your **$PYTHONHOME\Lib\site-packages**
+       directory (Most common location is
        **C:\Python27\Desktop10.x\Lib\site-packages**).  
+       For ArcGIS Pro Users with versions 1.0 - 1.2 that have installed the full version of Python 
+       will find the **ArcGISPro.pth** file in the 
+       **C:\Python34\Lib\site-packages** directory.  All other Pro users will
+       be using the **arcgispro-py3** Conda environment and will find the **ArcGISPro.pth**
+       file in the
+       **C:\ArcGIS\bin\Python\envs\arcgispro-py3\lib\site-packages**
+       directory.
+    1. Optionally, users may create their own personal **.pth** file(s) so
+       that they do not mess with the original one that ArcGIS installs for
+       them.  This is probably your safest bet and all you have to do is place
+       it in the same installation directory described previously.  The prefix
+       of the file does not matter, just make sure that the extension is
+       **.pth**.
        
 ## Requirements
 
