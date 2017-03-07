@@ -127,7 +127,7 @@ obtain version **0.13.0** from the **SourceForge Download Site**:
        **C:\$ARCHOME$\bin\Python\envs\arcgispro-py3\lib\site-packages**
        directory.
 
-    1. Optionally, users may create their own personal **.pth** file(s) so
+   1. Optionally, users may create their own personal **.pth** file(s) so
        that they do not mess with the original one that ArcGIS installs for
        them.  This is probably your safest bet and all you have to do is place
        it in the same installation directory described previously.  The prefix
