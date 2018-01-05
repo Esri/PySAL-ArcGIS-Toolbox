@@ -225,6 +225,9 @@ class AutoSpace_PySAL(object):
         
         if summary:
             ARCPY.AddMessage(summary)
+
+        self.olsModel = olsModel
+        self.finalModel = finalModel
         
     def createOutput(self, outputFC):
 
