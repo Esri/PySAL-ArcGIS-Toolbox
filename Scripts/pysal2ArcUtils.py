@@ -59,7 +59,7 @@ def setUniqueIDField(ssdo, weightsFile):
                and len(item) > 0:
                 masterField = item
                 # check to see if in ssdo
-                for fieldName, fieldObj in ssdo.allFields.iteritems():
+                for fieldName, fieldObj in ssdo.allFields.items():
                     if fieldObj.baseName.upper() == masterField.upper():
                         return masterField
                     

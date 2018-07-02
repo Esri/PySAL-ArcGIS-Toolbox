@@ -133,9 +133,9 @@ class DistW_PySAL(object):
             if ssdo.master2Order.keys() != ssdo.master2Order.values(): 
                 o2M = ssdo.order2Master
                 neighborDict = {o2M[oid] : [o2M[nid] for nid in nbrs] \
-                                for oid,nbrs in weightObj.neighbors.iteritems()}
+                                for oid,nbrs in weightObj.neighbors.items()}
                 weightDict = {o2M[oid] : weights \
-                              for oid, weights in weightObj.weights.iteritems()}
+                              for oid, weights in weightObj.weights.items()}
                 weightObj = W(neighborDict, weightDict)
             
         #### Save weightObj Class Object for Writing Result #### 
