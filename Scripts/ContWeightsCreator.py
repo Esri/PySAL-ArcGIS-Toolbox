@@ -161,7 +161,7 @@ class ContW_PySAL(object):
                 "%s %s %s %s\n" %  (0, weightObj.n, idField, 'UNKNOWN')
             outputWriter.write(header)
             # write content
-            masterIDs = weightObj.neighbors.keys()
+            masterIDs = list(weightObj.neighbors.keys())
             masterIDs.sort()
             for id in masterIDs:
                 neighbors = weightObj.neighbors[id]
@@ -184,7 +184,7 @@ class ContW_PySAL(object):
             swmWriter = WU.SWMWriter(outputFile, masterField, \
                                      ssdo.spatialRefName, weightObj.n, \
                                      rowStandard)
-            masterIDs = weightObj.neighbors.keys()
+            masterIDs = list(weightObj.neighbors.keys())
             masterIDs.sort()
             for key in masterIDs:
                 swmWriter.swm.writeEntry(key, weightObj.neighbors[key], \

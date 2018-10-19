@@ -219,7 +219,7 @@ class WeightConvertor(object):
             swmWriter = WU.SWMWriter(outputFile, uniqueID, \
                                      ssdo.spatialRefName if ssdo else '#', \
                                      weightObj.n, rowStandard)
-            masterIDs = weightObj.neighbors.keys()
+            masterIDs = list(weightObj.neighbors.keys())
             masterIDs.sort()
             for key in masterIDs:
                 swmWriter.swm.writeEntry(key, weightObj.neighbors[key], \
