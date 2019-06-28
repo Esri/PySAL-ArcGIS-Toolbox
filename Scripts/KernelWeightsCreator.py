@@ -6,7 +6,7 @@ Author(s): Xun Li, Xing Kang, Sergio Rey
 
 import arcpy as ARCPY
 import pysal as PYSAL
-from pysal.weights.Distance import Kernel
+import pysal.lib.weights as WEIGHTS
 import SSDataObject as SSDO
 import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
@@ -94,8 +94,8 @@ class KernelW_PySAL(object):
         masterIDs = range(ssdo.numObs)
         if idField: 
             masterIDs = [ssdo.order2Master[i] for i in masterIDs]
-        weightObj = Kernel(dataArray, fixed=True, k=neighborNum, \
-                           function=kernelType, ids=masterIDs)
+        weightObj = WEIGHTS.Kernel(dataArray, fixed=True, k=neighborNum, \
+                                   function=kernelType, ids=masterIDs)
     
         #### Save weightObj Class Object for Writing Result #### 
         self.weightObj = weightObj 
