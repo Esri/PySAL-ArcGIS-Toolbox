@@ -6,6 +6,24 @@ __pycache__/
 # C extensions
 *.so
 
+# Python Tools for Visual Studio (PTVS)
+__pycache__/
+*.pyc
+**/.vs
+*.pyproj
+*.sln
+.pyHistory
+
+# VS Code Files
+.vscode/
+
+# Start Up Source File for PTVS
+# Everyone Should Stick to this Filename
+**/DEBUG.py
+
+# Vim swap files
+.*.swp
+
 # Distribution / packaging
 .Python
 env/
