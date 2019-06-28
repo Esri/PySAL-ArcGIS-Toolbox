@@ -322,32 +322,6 @@ class DistanceWeights:
         
         #### Create Output ####
         distW.createOutput(rowStandard)
-
-# # ------------------------------
-#         weightOrder = UTILS.getNumericParameter(4, parameters)
-#         if weightOrder is None:
-#             weightOrder = 1
-
-#         isLowerOrder = parameters[5].value
-#         rowStandard = parameters[6].value
-
-#         #### Run Cont Weights Creation ####
-#         contW = CONT.ContW_PySAL(inputFC, outputFile, idField, weightType, weightOrder, 
-#                                  isLowerOrder)
-    
-#         #### Create Output ####
-#         contW.createOutput(rowStandard)
-
-# # --------------------------------
-
-#         inputFC = ARCPY.GetParameterAsText(0)
-#         outputFile = ARCPY.GetParameterAsText(1)
-#         distanceType = UTILS.getTextParameter(2).upper() #
-#         idField = UTILS.getTextParameter(3)
-        
-        
-        
-
        
         
         
