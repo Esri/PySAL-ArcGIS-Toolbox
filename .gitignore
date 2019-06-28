@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyt.xml
 
 # C extensions
 *.so
@@ -101,3 +102,6 @@ ENV/
 
 # Spyder project settings
 .spyderproject
+
+# Lock Files
+*.lock
