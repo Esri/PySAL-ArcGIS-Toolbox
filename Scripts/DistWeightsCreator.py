@@ -6,7 +6,7 @@ Author(s): Xun Li, Xing Kang, Sergio Rey
 
 import arcpy as ARCPY
 import pysal as PYSAL
-from pysal.weights import W
+import pysal.lib.weights as WEIGHTS
 import SSDataObject as SSDO
 import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
@@ -120,12 +120,12 @@ class DistW_PySAL(object):
         #### Create Distance-based WeightObj (0-based IDs) ####
         dataArray = ssdo.xyCoords
         if distanceType.upper() == DISTTYPE[0]:
-            weightObj = PYSAL.threshold_binaryW_from_array(dataArray, threshold)
+            weightObj = WEIGHTS.DistanceBand(dataArray, threshold)
         elif distanceType.upper() == DISTTYPE[1]:
-            weightObj = PYSAL.knnW_from_array(dataArray, knnNum)
+            weightObj = WEIGHTS.KNN(dataArray, knnNum)
         elif distanceType.upper() == DISTTYPE[2]:
             alpha = -1 * self.inverseDist
-            weightObj = PYSAL.threshold_continuousW_from_array(\
+            weightObj = WEIGHTS.DistanceBand(\
                 dataArray, threshold, alpha=alpha)
           
         #### Re-Create WeightObj for NOT 0-based idField #### 
@@ -136,7 +136,7 @@ class DistW_PySAL(object):
                                 for oid,nbrs in weightObj.neighbors.items()}
                 weightDict = {o2M[oid] : weights \
                               for oid, weights in weightObj.weights.items()}
-                weightObj = W(neighborDict, weightDict)
+                weightObj = WEIGHTS.W(neighborDict, weightDict)
             
         #### Save weightObj Class Object for Writing Result #### 
         self.weightObj = weightObj
