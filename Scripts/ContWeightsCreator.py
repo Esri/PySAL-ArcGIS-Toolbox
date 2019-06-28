@@ -6,7 +6,7 @@ Author(s): Mark Janikas, Xing Kang, Sergio Rey, Xun Li
 
 import arcpy as ARCPY
 import pysal as PYSAL
-from pysal.weights import W
+import pysal.lib.weights as WEIGHTS
 import SSUtilities as UTILS
 import SSDataObject as SSDO
 import pysal2ArcUtils as AUTILS
@@ -122,19 +122,19 @@ class ContW_PySAL(object):
             polyNeighborDict = polyNeighborCopy
        
         #### Create a PySAL W Object ####
-        weightObj = W(polyNeighborDict)
+        weightObj = WEIGHTS.W(polyNeighborDict)
             
         #### Building up Lower Order Spatial Weights ####
         if weightOrder > 1:
             ARCPY.SetProgressor("default", \
                                 "Building up Lower Order Spatial Weights...")
             origWeight = weightObj
-            weightObj = PYSAL.higher_order(weightObj, weightOrder)
+            weightObj = WEIGHTS.higher_order(weightObj, weightOrder)
             if isLowOrder:
-                for order in xrange(weightOrder-1, 1, -1):
-                    lowOrderW = PYSAL.higher_order(origWeight, order)
-                    weightObj = PYSAL.w_union(weightObj, lowOrderW)
-                weightObj = PYSAL.w_union(weightObj, origWeight)        
+                for order in range(weightOrder-1, 1, -1):
+                    lowOrderW = WEIGHTS.higher_order(origWeight, order)
+                    weightObj = WEIGHTS.w_union(weightObj, lowOrderW)
+                weightObj = WEIGHTS.w_union(weightObj, origWeight)        
     
         #### Save weightObj Class Object for Writing Result #### 
         self.weightObj = weightObj

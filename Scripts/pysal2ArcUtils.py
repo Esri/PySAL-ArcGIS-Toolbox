@@ -9,11 +9,11 @@ import SSDataObject as SSDO
 import SSUtilities as UTILS
 import WeightsUtilities as WU
 import locale as LOCALE
-from pysal.weights import W
-from pysal.spreg import ols
-from pysal.spreg import twosls_sp
-from pysal.spreg import error_sp_hom
-from pysal.spreg import error_sp_het
+from pysal.lib.weights import W
+from spreg import ols
+from spreg import twosls_sp
+from spreg import error_sp_hom
+from spreg import error_sp_het
 
 class PAT_W(object):
     """Wrapper Class for adding attributes to PySAL W for toolkit"""
