@@ -13,7 +13,7 @@ import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 import WeightsUtilities as WU
 
-EXTENSIONS = ['KWT', 'GWK', 'SWM']
+EXTENSIONS = ['KWT', 'SWM']
 KERNELTYPE = ['UNIFORM', 'TRIANGULAR', 'QUADRATIC', 'QUARTIC', 'GAUSSIAN']
 
 def setupParameters():
@@ -116,7 +116,7 @@ class KernelW_PySAL(object):
         #### Get File Name Without Extension ####
         fileName = ssdo.inName.rsplit('.', 1)[0]
         
-        if outputExt == EXTENSIONS[0] or outputExt == EXTENSIONS[1]:
+        if outputExt == EXTENSIONS[0]:
             # KWT file
             outputWriter = FileIO.open(outputFile, 'w')
             outputWriter.shpName = fileName
