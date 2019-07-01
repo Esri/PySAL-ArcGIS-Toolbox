@@ -6,13 +6,14 @@ Author(s): Xun Li, Xing Kang, Sergio Rey
 
 import arcpy as ARCPY
 import pysal as PYSAL
+import pysal.lib.io as FileIO
 import pysal.lib.weights as WEIGHTS
 import SSDataObject as SSDO
 import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 import WeightsUtilities as WU
 
-EXTENSIONS = ['KWT', 'SWM']
+EXTENSIONS = ['KWT', 'GWK', 'SWM']
 KERNELTYPE = ['UNIFORM', 'TRIANGULAR', 'QUADRATIC', 'QUARTIC', 'GAUSSIAN']
 
 def setupParameters():
@@ -36,7 +37,7 @@ def setupParameters():
 class KernelW_PySAL(object):
     """ Create Kernel-based Spatial Weights Using PySAL """
     
-    def __init__(self, inputFC, outputFile, kernelType, neighborNum, idField):
+    def __init__(self, inputFC, outputFile, idField, kernelType, neighborNum):
         
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
@@ -115,9 +116,9 @@ class KernelW_PySAL(object):
         #### Get File Name Without Extension ####
         fileName = ssdo.inName.rsplit('.', 1)[0]
         
-        if outputExt == EXTENSIONS[0]:
+        if outputExt == EXTENSIONS[0] or outputExt == EXTENSIONS[1]:
             # KWT file
-            outputWriter = PYSAL.open(outputFile, 'w')
+            outputWriter = FileIO.open(outputFile, 'w')
             outputWriter.shpName = fileName
             if idField:
                 outputWriter.varName = idField

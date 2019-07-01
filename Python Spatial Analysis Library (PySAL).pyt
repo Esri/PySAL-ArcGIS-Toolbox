@@ -353,7 +353,7 @@ class KernelWeights:
                                  datatype = "DEFile",
                                  parameterType = "Required",
                                  direction = "Output")
-        param2.filter.list = ['kwt', 'swm']
+        param2.filter.list = ['kwt']
 
         param3 = ARCPY.Parameter(displayName="Kernel Function",
                             name = "Kernel_Function",
