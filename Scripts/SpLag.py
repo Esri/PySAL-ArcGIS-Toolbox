@@ -15,6 +15,7 @@ import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 
 FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
+MODELTYPES = ["GMM_COMBO", "GMM_HAC", "ML"]
 
 def setupParameters():
 
@@ -38,18 +39,31 @@ def setupParameters():
     patW = AUTILS.PAT_W(ssdo, weightsFile)
 
     #### Run SpLag ####
-    splag = GMLag_PySAL(ssdo, depVarName, indVarNames, patW)
+    splag = Lag_PySAL(ssdo, depVarName, indVarNames, patW)
 
     #### Create Output ####
     splag.createOutput(outputFC)
 
-class GMLag_PySAL(object):
-    """Computes linear regression via Ordinary Least Squares using PySAL."""
+class Lag_PySAL(object):
+    """Computes SAR Lag linear regression via GMM/ML using PySAL."""
 
-    def __init__(self, ssdo, depVarName, indVarNames, patW, useHAC = True):
+    def __init__(self, ssdo, depVarName, indVarNames, patW, 
+                 modelType = "GMM_COMBO", gwkW = None):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
+
+        #### Validate Model Type ####
+        if modelType not in MODELTYPES:
+            ARCPY.AddError("The input model type {0} is not in {1}".format(modelType, 
+                                                                           ", ".join(MODELTYPES)))
+            raise SystemExit()
+
+        #### Assure Kernel Weights for HAC ####
+        if modelType == "GMM_HAC" and gwkW is None:
+            m = "You must provide kernel weights matrix when using the HAC Estimator"
+            ARCPY.AddError(m)
+            raise SystemExit()
 
         #### Initialize Data ####
         self.initialize()
@@ -109,24 +123,45 @@ class GMLag_PySAL(object):
         self.w = self.patW.w
         self.wName = self.patW.wName
 
+        if self.gwkW is not None:
+            self.gwk = self.gwkW.w
+            self.gwkName = self.gwkW.wName
+
     def calculate(self):
         """Performs GM Error Model and related diagnostics."""
 
         ARCPY.SetProgressor("default", "Executing Spatial Lag regression...")
 
         #### Perform GM_Lag regression ####
-        self.lag = PYSAL.spreg.GM_Lag(self.y, self.x, w = self.w, 
-                                      robust = 'white', spat_diag = True, 
-                                      name_y = self.depVarName,
-                                      name_x = self.indVarNames, 
-                                      name_w = self.wName,
-                                      name_ds = self.ssdo.inputFC)
+        if self.modelType == "GMM_COMBO":
+            self.lag = PYSAL.model.spreg.GM_Lag(self.y, self.x, w = self.w, 
+                                                robust = 'white', spat_diag = True, 
+                                                name_y = self.depVarName,
+                                                name_x = self.indVarNames, 
+                                                name_w = self.wName,
+                                                name_ds = self.ssdo.inputFC)
+        elif self.modelType == "GMM_HAC":
+            self.lag = PYSAL.model.spreg.GM_Lag(self.y, self.x, w = self.w, 
+                                                robust = 'hac', gwk = self.gwk,
+                                                spat_diag = True, 
+                                                name_y = self.depVarName,
+                                                name_x = self.indVarNames, 
+                                                name_w = self.wName,
+                                                name_gwk = self.gwkName,
+                                                name_ds = self.ssdo.inputFC)
+        else:
+            self.lag = PYSAL.model.spreg.ML_Lag(self.y, self.x, self.w,
+                                                spat_diag = True,
+                                                name_y = self.depVarName,
+                                                name_x = self.indVarNames, 
+                                                name_w = self.wName,
+                                                name_ds = self.ssdo.inputFC)
         ARCPY.AddMessage(self.lag.summary)
 
     def createOutput(self, outputFC):
 
         #### Build fields for output table ####
-        if self.lag.e_pred == None:
+        if self.lag.e_pred is None:
             ePredOut = NUM.ones(self.ssdo.numObs) * NUM.nan
         else:
             ePredOut = self.lag.e_pred

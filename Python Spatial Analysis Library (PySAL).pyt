@@ -22,7 +22,7 @@ class Toolbox(object):
     def __init__(self):
         self.label = "Python Spatial Analysis Library (PySAL)"
         self.alias = "pysal"
-        self.tools = [ContiguityWeights, DistanceWeights, KernelWeights]
+        self.tools = [ContiguityWeights, DistanceWeights, KernelWeights, SpatialLag]
 
 class ContiguityWeights:
     def __init__(self):
@@ -37,6 +37,7 @@ class ContiguityWeights:
                             datatype = "DEFeatureClass",
                             parameterType = "Required",
                             direction = "Input")
+        param0.filter.list = ['Polygon']
 
         param1 = ARCPY.Parameter(displayName="Unique ID Field",
                             name = "Unique_ID_Field",
@@ -404,3 +405,124 @@ class KernelWeights:
     
         #### Create Output ####
         contW.createOutput()
+
+class SpatialLag:
+    def __init__(self):
+        self.label = "Runs Spatial Lag SAR Model."
+        self.description = ""
+        self.category = "Spatial Regression Tools"
+        self.canRunInBackground = False
+
+    def getParameterInfo(self):
+        param0 = ARCPY.Parameter(displayName="Input Features",
+                            name = "input_features",
+                            datatype = "GPFeatureLayer",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param1 = ARCPY.Parameter(displayName="Dependent Variable",
+                            name = "dependent_variable",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input")
+        param1.filter.list = ['Short','Long','Float','Double']
+        param1.parameterDependencies = ["input_features"]
+
+        param2 = ARCPY.Parameter(displayName="Explanatory Variable(s)",
+                            name = "explanatory_variables",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input",
+                            multiValue = True)
+        param2.filter.list = ['Short','Long','Float','Double']
+        param2.parameterDependencies = ["input_features"]
+        param2.controlCLSID = "{38C34610-C7F7-11D5-A693-0008C711C8C1}"
+
+        param3 = ARCPY.Parameter(displayName="Input Spatial Weights Matrix File",
+                            name = "Input_Spatial_Weights_Matrix_File",
+                            datatype = "DEFile",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param3.filter.list = ['swm', 'gal', 'gwt']
+
+        param4 = ARCPY.Parameter(displayName="Output Feature Class",
+                            name = "Output_Feature_Class",
+                            datatype = "DEFeatureClass",
+                            parameterType = "Required",
+                            direction = "Output")
+        
+        param5 = ARCPY.Parameter(displayName="Choice of Estimator",
+                                 name = "choice_of_estimator",
+                                 datatype = "GPString",
+                                 parameterType = "Optional",
+                                 direction = "Input")
+        param5.filter.type = "ValueList"
+        param5.filter.list = ['GMM Combo','GMM HAC','ML']
+        param5.value = 'GMM Combo'
+
+        param6 = ARCPY.Parameter(displayName="Input Kernel Weights Matrix File",
+                            name = "Input_Kernel_Weights_Matrix_File",
+                            datatype = "DEFile",
+                            parameterType = "Optional",
+                            direction = "Input")
+        param6.filter.list = ['kwt']
+        param6.enabled = False
+
+        return [param0,param1,param2,param3,param4,param5,param6]
+
+    def updateParameters(self, parameters):
+        #### Enabled/Disable/Clear Kernel Weights for HAC ####
+        if parameters[5].value:
+            if parameters[5].value.upper() == "GMM HAC":
+                parameters[6].enabled = True
+            else:
+                parameters[6].enabled = False
+                parameters[6].value = ""
+
+        return
+
+    def updateMessages(self, parameters):
+        #### Make Kernel Weights Required if HAC ####
+        if parameters[5].value:
+            if parameters[5].value.upper() == "GMM HAC":
+                if not parameters[6].value:
+                    msg = "You must provide kernel weights (*kwt) file when using the HAC Estimator"
+                    parameters[6].setErrorMessage(msg)
+
+        return
+
+    def execute(self, parameters, messages):
+        import SSUtilities as UTILS
+        import SSDataObject as SSDO
+        import pysal2ArcUtils as AUTILS
+        import SpLag as LAG
+
+        inputFC = UTILS.getTextParameter(0, parameters)
+        depVarName = UTILS.getTextParameter(1, parameters).upper()
+        indVarNames = UTILS.getTextParameter(2, parameters).upper()
+        indVarNames = indVarNames.split(";")
+        weightsFile = UTILS.getTextParameter(3, parameters)
+        outputFC = UTILS.getTextParameter(4, parameters)
+        modelType = UTILS.getTextParameter(5, parameters).upper().replace(" ", "_")
+        kernelFile = UTILS.getTextParameter(6, parameters)
+
+        #### Create SSDataObject ####
+        fieldList = [depVarName] + indVarNames
+        ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
+        masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
+
+        #### Populate SSDO with Data ####
+        ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
+
+        #### Create Weights ####
+        patW = AUTILS.PAT_W(ssdo, weightsFile)
+        if kernelFile is not None:
+            gwkW = AUTILS.PAT_W(ssdo, kernelFile)
+        else:
+            gwkW = None
+
+        lag = LAG.Lag_PySAL(ssdo, depVarName, indVarNames, patW, modelType, gwkW)
+
+        #### Create Output ####
+        lag.createOutput(outputFC)

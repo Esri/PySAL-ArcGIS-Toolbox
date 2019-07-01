@@ -171,7 +171,7 @@ def swm2Weights(swmFile, master2Order=None):
     swm.close()
     wobj = W(neighs, w)
     wobj._varName = swm.masterField
-    return wobj
+    return wojb
 
 def text2Weights(weightsFile, master2Order = None):
 
