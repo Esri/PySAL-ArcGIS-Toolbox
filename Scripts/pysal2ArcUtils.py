@@ -100,7 +100,7 @@ def getIDFieldFromWeights(weightsFile):
 
 def getFeatNumFromWeights(weightsFile):
     weightType = returnWeightFileType(weightsFile)
-    if weightType in ['GAL', 'GWT']:
+    if weightType in ['GAL', 'GWT', 'KWT']:
         weightFile = open(weightsFile, 'r')
         info = weightFile.readline().strip().split()
         if weightType == 'GAL':
