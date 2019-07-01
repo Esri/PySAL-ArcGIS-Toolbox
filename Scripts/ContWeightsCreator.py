@@ -6,6 +6,7 @@ Author(s): Mark Janikas, Xing Kang, Sergio Rey, Xun Li
 
 import arcpy as ARCPY
 import pysal as PYSAL
+import pysal.lib.io as FileIO
 import pysal.lib.weights as WEIGHTS
 import SSUtilities as UTILS
 import SSDataObject as SSDO
@@ -172,7 +173,7 @@ class ContW_PySAL(object):
             
         elif self.outputExt == EXTENSIONS[1]:
             # GWT file
-            outputWriter = PYSAL.open(outputFile, 'w')
+            outputWriter = FileIO.open(outputFile, 'w')
             outputWriter.shpName = fileName
             if idField:
                 outputWriter.varName = idField
