@@ -17,6 +17,15 @@ import pysal2ArcUtils as AUTILS
 FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
 MODELTYPES = ["GMM_COMBO", "GMM_HAC", "ML"]
 
+# todo: delete after debug
+debugFile = open(r"c:\temp\debug.log", 'a', encoding='utf-8')
+def debug_log(message):
+    import datetime
+    dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    debugFile.write("[%s] %s\n" % (dt_str, str(message)))
+    debugFile.flush()
+# end todo
+
 def setupParameters():
 
     #### Get User Provided Inputs ####
@@ -170,16 +179,16 @@ class Lag_PySAL(object):
         candidateFields = {}
         candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
                                                              "Double", 
-                                                             self.lag.predy)
+                                                             self.lag.predy.flatten())
         candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
                                                              "Double", 
-                                                             self.lag.u)
+                                                             self.lag.u.flatten())
         candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
                                                              "Double", 
-                                                             self.lag.predy_e)
+                                                             self.lag.predy_e.flatten())
         candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
                                                              "Double", 
-                                                             ePredOut)
+                                                             ePredOut.flatten())
         self.ssdo.output2NewFC(outputFC, candidateFields, 
                                appendFields = self.allVars)
 

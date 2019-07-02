@@ -408,7 +408,7 @@ class KernelWeights:
 
 class SpatialLag:
     def __init__(self):
-        self.label = "Runs Spatial Lag SAR Model."
+        self.label = "Runs Spatial Lag SAR Model"
         self.description = ""
         self.category = "Spatial Regression Tools"
         self.canRunInBackground = False
