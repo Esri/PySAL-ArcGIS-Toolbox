@@ -2,7 +2,7 @@
 This script calls OLS functionality from the PySAL Module within the ArcGIS
 environment.
 
-Author(s): Mark Janikas, Xing Kang, Sergio Rey
+Author(s): Mark Janikas, Xing Kang, Sergio Rey, Hu Shao
 """
 
 import arcpy as ARCPY
@@ -15,42 +15,12 @@ import sys as SYS
 import pysal2ArcUtils as AUTILS
 
 FIELDNAMES = ["Predy", "Resid"]
-
-def setupParameters():
-
-    #### Get User Provided Inputs ####
-    inputFC = ARCPY.GetParameterAsText(0)
-    depVarName = ARCPY.GetParameterAsText(1).upper()  
-    indVarNames = ARCPY.GetParameterAsText(2).upper()  
-    indVarNames = indVarNames.split(";")
-    outputFC = UTILS.getTextParameter(3)
-    weightsFile = UTILS.getTextParameter(4)
-
-    #### Create SSDataObject ####
-    fieldList = [depVarName] + indVarNames
-    ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    masterField = AUTILS.setUniqueIDField(ssdo, weightsFile = weightsFile)
-
-    #### Populate SSDO with Data ####
-    ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
-
-    #### Resolve Weights File ####
-    if weightsFile:
-        patW = AUTILS.PAT_W(ssdo, weightsFile)
-    else:
-        patW = None
-
-    #### Run OLS ####
-    ols = OLS_PySAL(ssdo, depVarName, indVarNames, patW = patW)
-
-    #### Create Output ####
-    ols.createOutput(outputFC)
-
+FIELDALIAS = ["Predicted {0}", "Residual"]
 
 class OLS_PySAL(object):
     """Computes linear regression via Ordinary Least Squares using PySAL."""
 
-    def __init__(self, ssdo, depVarName, indVarNames, patW = None):
+    def __init__(self, ssdo, depVarName, indVarNames, patW):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
@@ -110,12 +80,8 @@ class OLS_PySAL(object):
             self.x[:,column] = ssdo.fields[variable].data
 
         #### Resolve Weights ####
-        if self.patW:
-            self.w = self.patW.w
-            self.wName = self.patW.wName
-        else:
-            self.w = None
-            self.wName = None
+        self.w = self.patW.w
+        self.wName = self.patW.wName
 
     def calculate(self):
         """Performs OLS and related diagnostics."""
@@ -123,49 +89,27 @@ class OLS_PySAL(object):
         ARCPY.SetProgressor("default", "Executing OLS regression...")
 
         #### Performan OLS regression ####
-        if self.patW:
-            ols = PYSAL.spreg.OLS(self.y, self.x, w = self.w,
-                                  spat_diag = True, robust = 'white', 
-                                  name_y = self.depVarName,
-                                  name_x = self.indVarNames, 
-                                  name_ds = self.ssdo.inputFC,
-                                  name_w = self.wName)
-        else:
-            ols = PYSAL.spreg.OLS(self.y, self.x, robust = 'white', 
-                                  name_y = self.depVarName, 
-                                  name_x = self.indVarNames, 
-                                  name_ds = self.ssdo.inputFC)
-        self.ols = ols
-        ARCPY.AddMessage(ols.summary)
+        self.ols = PYSAL.model.spreg.OLS(self.y, self.x, w = self.w,
+                                         spat_diag = True, robust = 'white', 
+                                         name_y = self.depVarName,
+                                         name_x = self.indVarNames, 
+                                         name_ds = self.ssdo.inputFC,
+                                         name_w = self.wName)
+        ARCPY.AddMessage(self.ols.summary)
 
     def createOutput(self, outputFC):
         
         #### Build fields for output table ####
-        self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
-        candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
-                                                             "Double",
-                                                             self.ols.predy)
-        candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1], 
-                                                             "Double",
-                                                             self.ols.u)
+        fieldData = [self.ols.predy.flatten(), self.ols.u.flatten()]
+        for i, fieldName in enumerate(FIELDNAMES):
+            alias = FIELDALIAS[i]
+            if not i:
+                alias = alias.format(self.depVarName)
+            candidateFields[fieldName] = SSDO.CandidateField(fieldName,
+                                                             "Double", 
+                                                             fieldData[i],
+                                                             alias = alias)
         self.ssdo.output2NewFC(outputFC, candidateFields, 
-                               appendFields = self.allVars)
-
-        #### Set the Default Symbology ####
-        params = ARCPY.gp.GetParameterInfo()
-        try:
-            renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
-            if renderType == 0:
-                renderLayerFile = "ResidPoints.lyr"
-            elif renderType == 1:
-                renderLayerFile = "ResidPolylines.lyr"
-            else:
-                renderLayerFile = "ResidPolygons.lyr"
-            fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
-            params[3].Symbology = fullRLF
-        except:
-            ARCPY.AddIDMessage("WARNING", 973)
-
-if __name__ == '__main__':
-    setupParameters()
+                               appendFields = self.allVars,
+                               fieldOrder = FIELDNAMES)

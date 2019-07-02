@@ -27,7 +27,8 @@ class Toolbox(object):
     def __init__(self):
         self.label = "Python Spatial Analysis Library (PySAL)"
         self.alias = "pysal"
-        self.tools = [ContiguityWeights, DistanceWeights, KernelWeights, SpatialLag]
+        self.tools = [ContiguityWeights, DistanceWeights, KernelWeights,
+                      OLS, SpatialError, SpatialLag]
 
 class ContiguityWeights:
     def __init__(self):
@@ -410,6 +411,215 @@ class KernelWeights:
     
         #### Create Output ####
         contW.createOutput()
+
+class OLS:
+    def __init__(self):
+        self.label = "Runs OLS with Residual Spatial Diagnostics"
+        self.description = ""
+        self.category = "Spatial Regression Tools"
+        self.canRunInBackground = False
+
+    def getParameterInfo(self):
+        param0 = ARCPY.Parameter(displayName="Input Features",
+                            name = "input_features",
+                            datatype = "GPFeatureLayer",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param1 = ARCPY.Parameter(displayName="Dependent Variable",
+                            name = "dependent_variable",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input")
+        param1.filter.list = ['Short','Long','Float','Double']
+        param1.parameterDependencies = ["input_features"]
+
+        param2 = ARCPY.Parameter(displayName="Explanatory Variable(s)",
+                            name = "explanatory_variables",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input",
+                            multiValue = True)
+        param2.filter.list = ['Short','Long','Float','Double']
+        param2.parameterDependencies = ["input_features"]
+        param2.controlCLSID = "{38C34610-C7F7-11D5-A693-0008C711C8C1}"
+
+        param3 = ARCPY.Parameter(displayName="Input Spatial Weights Matrix File",
+                            name = "Input_Spatial_Weights_Matrix_File",
+                            datatype = "DEFile",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param3.filter.list = ['swm', 'gal', 'gwt']
+
+        param4 = ARCPY.Parameter(displayName="Output Feature Class",
+                            name = "Output_Feature_Class",
+                            datatype = "DEFeatureClass",
+                            parameterType = "Required",
+                            direction = "Output")
+        
+        return [param0,param1,param2,param3,param4]
+
+    def updateParameters(self, parameters):
+        return
+
+    def updateMessages(self, parameters):
+        return
+
+    def execute(self, parameters, messages):
+        import SSUtilities as UTILS
+        import SSDataObject as SSDO
+        import pysal2ArcUtils as AUTILS
+        import OLSPySAL as OLS_PYSAL
+
+        inputFC = UTILS.getTextParameter(0, parameters)
+        depVarName = UTILS.getTextParameter(1, parameters).upper()
+        indVarNames = UTILS.getTextParameter(2, parameters).upper()
+        indVarNames = indVarNames.split(";")
+        weightsFile = UTILS.getTextParameter(3, parameters)
+        outputFC = UTILS.getTextParameter(4, parameters)
+
+        #### Create SSDataObject ####
+        fieldList = [depVarName] + indVarNames
+        ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
+        masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
+
+        #### Populate SSDO with Data ####
+        ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
+
+        #### Create Weights ####
+        patW = AUTILS.PAT_W(ssdo, weightsFile)
+
+        #### Run OLS ####
+        ols = OLS_PYSAL.OLS_PySAL(ssdo, depVarName, indVarNames, patW)
+
+        #### Create Output ####
+        ols.createOutput(outputFC)
+
+        #### Render Output ####
+        templateDir = OS.path.join(SYS.path[0], "Scripts", "Layers")
+        try:
+            renderType = UTILS.renderType[ssdo.shapeType.upper()]
+            if renderType == 0:
+                renderLayerFile = "ResidPoints.lyr"
+            elif renderType == 1:
+                renderLayerFile = "ResidPolylines.lyr"
+            else:
+                renderLayerFile = "ResidPolygons.lyr"
+            fullRLF = OS.path.join(templateDir, renderLayerFile)
+            parameters[4].symbology = fullRLF
+        except:
+            ARCPY.AddIDMessage("WARNING", 973)
+
+class SpatialError:
+    def __init__(self):
+        self.label = "Runs Spatial Error SAR Model"
+        self.description = ""
+        self.category = "Spatial Regression Tools"
+        self.canRunInBackground = False
+
+    def getParameterInfo(self):
+        param0 = ARCPY.Parameter(displayName="Input Features",
+                            name = "input_features",
+                            datatype = "GPFeatureLayer",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param1 = ARCPY.Parameter(displayName="Dependent Variable",
+                            name = "dependent_variable",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input")
+        param1.filter.list = ['Short','Long','Float','Double']
+        param1.parameterDependencies = ["input_features"]
+
+        param2 = ARCPY.Parameter(displayName="Explanatory Variable(s)",
+                            name = "explanatory_variables",
+                            datatype = "Field",
+                            parameterType = "Required",
+                            direction = "Input",
+                            multiValue = True)
+        param2.filter.list = ['Short','Long','Float','Double']
+        param2.parameterDependencies = ["input_features"]
+        param2.controlCLSID = "{38C34610-C7F7-11D5-A693-0008C711C8C1}"
+
+        param3 = ARCPY.Parameter(displayName="Input Spatial Weights Matrix File",
+                            name = "Input_Spatial_Weights_Matrix_File",
+                            datatype = "DEFile",
+                            parameterType = "Required",
+                            direction = "Input")
+
+        param3.filter.list = ['swm', 'gal', 'gwt']
+
+        param4 = ARCPY.Parameter(displayName="Output Feature Class",
+                            name = "Output_Feature_Class",
+                            datatype = "DEFeatureClass",
+                            parameterType = "Required",
+                            direction = "Output")
+        
+        param5 = ARCPY.Parameter(displayName="Choice of Estimator",
+                                 name = "choice_of_estimator",
+                                 datatype = "GPString",
+                                 parameterType = "Optional",
+                                 direction = "Input")
+        param5.filter.type = "ValueList"
+        param5.filter.list = ['GMM','GMM HAC','ML']
+        param5.value = 'GMM'
+
+        return [param0,param1,param2,param3,param4,param5]
+
+    def updateParameters(self, parameters):
+        return
+
+    def updateMessages(self, parameters):
+        return
+
+    def execute(self, parameters, messages):
+        import SSUtilities as UTILS
+        import SSDataObject as SSDO
+        import pysal2ArcUtils as AUTILS
+        import SpError as ERROR
+
+        inputFC = UTILS.getTextParameter(0, parameters)
+        depVarName = UTILS.getTextParameter(1, parameters).upper()
+        indVarNames = UTILS.getTextParameter(2, parameters).upper()
+        indVarNames = indVarNames.split(";")
+        weightsFile = UTILS.getTextParameter(3, parameters)
+        outputFC = UTILS.getTextParameter(4, parameters)
+        modelType = UTILS.getTextParameter(5, parameters).upper().replace(" ", "_")
+
+        #### Create SSDataObject ####
+        fieldList = [depVarName] + indVarNames
+        ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
+        masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
+
+        #### Populate SSDO with Data ####
+        ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
+
+        #### Create Weights ####
+        patW = AUTILS.PAT_W(ssdo, weightsFile)
+
+        #### Run Model ####
+        error = ERROR.Error_PySAL(ssdo, depVarName, indVarNames, patW, modelType)
+
+        #### Create Output ####
+        error.createOutput(outputFC)
+
+        #### Render Output ####
+        templateDir = OS.path.join(SYS.path[0], "Scripts", "Layers")
+        try:
+            renderType = UTILS.renderType[ssdo.shapeType.upper()]
+            if renderType == 0:
+                renderLayerFile = "ResidPoints.lyr"
+            elif renderType == 1:
+                renderLayerFile = "ResidPolylines.lyr"
+            else:
+                renderLayerFile = "ResidPolygons.lyr"
+            fullRLF = OS.path.join(templateDir, renderLayerFile)
+            parameters[4].symbology = fullRLF
+        except:
+            ARCPY.AddIDMessage("WARNING", 973)
+
 
 class SpatialLag:
     def __init__(self):

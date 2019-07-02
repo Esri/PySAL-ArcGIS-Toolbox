@@ -2,7 +2,7 @@
 This script calls the Spatial Lag SAR functionality from the PySAL Module
 within the ArcGIS environment.
 
-Author(s): Mark Janikas, Xing Kang, Sergio Rey
+Author(s): Mark Janikas, Xing Kang, Sergio Rey, Hu Shao
 """
 
 import arcpy as ARCPY
@@ -18,15 +18,6 @@ FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
 FIELDALIAS = ["Predicted {0}", "Residual", "Predicted {0} (Reduced Form)",
               "Prediced Error (Reduced Form)"]
 MODELTYPES = ["GMM_COMBO", "GMM_HAC", "ML"]
-
-# todo: delete after debug
-debugFile = open(r"c:\temp\debug.log", 'a', encoding='utf-8')
-def debug_log(message):
-    import datetime
-    dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    debugFile.write("[%s] %s\n" % (dt_str, str(message)))
-    debugFile.flush()
-# end todo
 
 class Lag_PySAL(object):
     """Computes SAR Lag linear regression via GMM/ML using PySAL."""

@@ -2,7 +2,7 @@
 This script calls the Spatial Error SAR functionality from the PySAL Module
 within the ArcGIS environment.
 
-Author(s): Mark Janikas, Xing Kang, Sergio Rey
+Author(s): Mark Janikas, Xing Kang, Sergio Rey, Hu SHao
 """
 
 import arcpy as ARCPY
@@ -15,43 +15,25 @@ import sys as SYS
 import pysal2ArcUtils as AUTILS
 
 FIELDNAMES = ["Predy", "Resid"]
+FIELDALIAS = ["Predicted {0}", "Residual"]
+HET_FIELDNAMES = ["HetPredy", "HetResid", "FiltResid"]
+HET_FIELDALIAS = ["Predicted {0} (Het Adjusted)", "Residual (Het Adjusted)", 
+                  "Residual (Spatially Filtered)"]
+MODELTYPES = ["GMM", "GMM_HAC", "ML"]
 
-def setupParameters():
-
-    #### Get User Provided Inputs ####
-    inputFC = ARCPY.GetParameterAsText(0)
-    depVarName = ARCPY.GetParameterAsText(1).upper()
-    indVarNames = ARCPY.GetParameterAsText(2).upper()
-    indVarNames = indVarNames.split(";")
-    weightsFile = ARCPY.GetParameterAsText(3)
-    outputFC = ARCPY.GetParameterAsText(4)
-    useHAC = ARCPY.GetParameter(5)
-
-    #### Create SSDataObject ####
-    fieldList = [depVarName] + indVarNames
-    ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
-    
-    #### Populate SSDO with Data ####
-    ssdo.obtainData(masterField, fieldList) 
-
-    #### Resolve Weights File ####
-    patW = AUTILS.PAT_W(ssdo, weightsFile)
-
-    #### Run OLS ####
-    ols = GMError_PySAL(ssdo, depVarName, indVarNames, patW, useHAC = useHAC)
-
-    #### Create Output ####
-    ols.createOutput(outputFC)
-
-
-class GMError_PySAL(object):
+class Error_PySAL(object):
     """Computes linear regression via Ordinary Least Squares using PySAL."""
 
-    def __init__(self, ssdo, depVarName, indVarNames, patW, useHAC = True):
+    def __init__(self, ssdo, depVarName, indVarNames, patW, modelType = "GMM"):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
+
+        #### Validate Model Type ####
+        if modelType not in MODELTYPES:
+            ARCPY.AddError("The input model type {0} is not in {1}".format(modelType, 
+                                                                           ", ".join(MODELTYPES)))
+            raise SystemExit()
 
         #### Initialize Data ####
         self.initialize()
@@ -117,53 +99,50 @@ class GMError_PySAL(object):
         ARCPY.SetProgressor("default", "Executing Spatial Error regression...")
 
         #### Perform GM_Error/GMError_Het regression ####
-        if not self.useHAC:
-            error = PYSAL.spreg.GM_Error(self.y, self.x, w = self.w, 
-                                         name_y = self.depVarName,
-                                         name_x = self.indVarNames, 
-                                         name_w = self.wName,
-                                         name_ds = self.ssdo.inputFC)
+        if self.modelType == "ML":
+            error = PYSAL.model.spreg.ML_Error(self.y, self.x, w = self.w,
+                                               name_y = self.depVarName,
+                                               name_x = self.indVarNames,
+                                               name_w = self.wName,
+                                               name_ds = self.ssdo.inputFC)
+
+        elif self.modelType == "GMM":
+            error = PYSAL.model.spreg.GM_Error(self.y, self.x, w = self.w, 
+                                               name_y = self.depVarName,
+                                               name_x = self.indVarNames, 
+                                               name_w = self.wName,
+                                               name_ds = self.ssdo.inputFC)
         else:
-            error = PYSAL.spreg.GM_Error_Het(self.y, self.x, w = self.w, 
-                                             name_y = self.depVarName,
-                                             name_x = self.indVarNames, 
-                                             name_w = self.wName,
-                                             name_ds = self.ssdo.inputFC)
-            for i in range(len(FIELDNAMES)):
-                FIELDNAMES[i] = "Het" + FIELDNAMES[i]
+            error = PYSAL.model.spreg.GM_Error_Het(self.y, self.x, w = self.w, 
+                                                   name_y = self.depVarName,
+                                                   name_x = self.indVarNames, 
+                                                   name_w = self.wName,
+                                                   name_ds = self.ssdo.inputFC)
         self.error = error
         ARCPY.AddMessage(self.error.summary)
 
     def createOutput(self, outputFC):
-
+        
         #### Build fields for output table ####
-        self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
-        candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0], 
+        fieldData = [self.error.predy.flatten(), self.error.u.flatten()]
+        if self.modelType == "GMM_HAC":
+            fieldData.append(self.error.e_filtered.ravel())
+            fieldNames = HET_FIELDNAMES
+            aliases = HET_FIELDALIAS
+        else:
+            fieldNames = FIELDNAMES
+            aliases = FIELDALIAS
+
+        for i, fieldName in enumerate(fieldNames):
+            alias = aliases[i]
+            if not i:
+                alias = alias.format(self.depVarName)
+            candidateFields[fieldName] = SSDO.CandidateField(fieldName,
                                                              "Double", 
-                                                             self.error.predy)
-        candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1], 
-                                                             "Double", 
-                                                             self.error.u)
+                                                             fieldData[i],
+                                                             alias = alias)
+
         self.ssdo.output2NewFC(outputFC, candidateFields, 
-                               appendFields = self.allVars)
-
-        #### Set the Default Symbology ####
-        params = ARCPY.gp.GetParameterInfo()
-        try:
-            renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
-            if renderType == 0:
-                renderLayerFile = "ResidPoints.lyr"
-            elif renderType == 1:
-                renderLayerFile = "ResidPolylines.lyr"
-            else:
-                renderLayerFile = "ResidPolygons.lyr"
-            if FIELDNAMES[0].startswith('Het'):
-                renderLayerFile = "Het" + renderLayerFile
-            fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
-            params[4].Symbology = fullRLF
-        except:
-            ARCPY.AddIDMessage("WARNING", 973)
-
-if __name__ == '__main__':
-    setupParameters()
+                               appendFields = self.allVars,
+                               fieldOrder = fieldNames)
