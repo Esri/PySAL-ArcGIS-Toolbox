@@ -4,6 +4,11 @@ import sys as SYS
 import SSDataObject as SSDO
 import SSUtilities as UTILS
 import WeightsUtilities as WU
+import warnings as WARN
+
+#### Disable PySAL Warnings ####
+if not SYS.warnoptions:
+    WARN.simplefilter("ignore")
 
 FEATURETYPE = ['POINT', 'MULTIPOINT', 'POLYGON']
 DISTMETHODS = ['Threshold Distance', 'K Nearest Neighbors', 'Inverse Distance']
@@ -526,3 +531,18 @@ class SpatialLag:
 
         #### Create Output ####
         lag.createOutput(outputFC)
+
+        #### Render Output ####
+        templateDir = OS.path.join(SYS.path[0], "Scripts", "Layers")
+        try:
+            renderType = UTILS.renderType[ssdo.shapeType.upper()]
+            if renderType == 0:
+                renderLayerFile = "ResidPoints.lyr"
+            elif renderType == 1:
+                renderLayerFile = "ResidPolylines.lyr"
+            else:
+                renderLayerFile = "ResidPolygons.lyr"
+            fullRLF = OS.path.join(templateDir, renderLayerFile)
+            parameters[4].symbology = fullRLF
+        except:
+            ARCPY.AddIDMessage("WARNING", 973)

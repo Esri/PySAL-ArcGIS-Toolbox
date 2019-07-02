@@ -15,6 +15,8 @@ import SSUtilities as UTILS
 import pysal2ArcUtils as AUTILS
 
 FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
+FIELDALIAS = ["Predicted {0}", "Residual", "Predicted {0} (Reduced Form)",
+              "Prediced Error (Reduced Form)"]
 MODELTYPES = ["GMM_COMBO", "GMM_HAC", "ML"]
 
 # todo: delete after debug
@@ -25,33 +27,6 @@ def debug_log(message):
     debugFile.write("[%s] %s\n" % (dt_str, str(message)))
     debugFile.flush()
 # end todo
-
-def setupParameters():
-
-    #### Get User Provided Inputs ####
-    inputFC = ARCPY.GetParameterAsText(0)
-    depVarName = ARCPY.GetParameterAsText(1).upper()
-    indVarNames = ARCPY.GetParameterAsText(2).upper()
-    indVarNames = indVarNames.split(";")
-    weightsFile = ARCPY.GetParameterAsText(3)
-    outputFC = ARCPY.GetParameterAsText(4)
-
-    #### Create SSDataObject ####
-    fieldList = [depVarName] + indVarNames
-    ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    masterField = AUTILS.setUniqueIDField(ssdo, weightsFile)
-
-    #### Populate SSDO with Data ####
-    ssdo.obtainData(masterField, fieldList, minNumObs = 5) 
-
-    #### Resolve Weights File ####
-    patW = AUTILS.PAT_W(ssdo, weightsFile)
-
-    #### Run SpLag ####
-    splag = Lag_PySAL(ssdo, depVarName, indVarNames, patW)
-
-    #### Create Output ####
-    splag.createOutput(outputFC)
 
 class Lag_PySAL(object):
     """Computes SAR Lag linear regression via GMM/ML using PySAL."""
@@ -170,43 +145,25 @@ class Lag_PySAL(object):
     def createOutput(self, outputFC):
 
         #### Build fields for output table ####
-        if self.lag.e_pred is None:
+        nullFlag = self.lag.e_pred is None
+        if nullFlag:
             ePredOut = NUM.ones(self.ssdo.numObs) * NUM.nan
         else:
             ePredOut = self.lag.e_pred
 
-        self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
-        candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
+        fieldData = [self.lag.predy.flatten(), self.lag.u.flatten(),
+                     self.lag.predy_e.flatten(), ePredOut.flatten()]
+        for i, fieldName in enumerate(FIELDNAMES):
+            alias = FIELDALIAS[i]
+            if i in [0, 2]:
+                alias = alias.format(self.depVarName)
+            candidateFields[fieldName] = SSDO.CandidateField(fieldName,
                                                              "Double", 
-                                                             self.lag.predy.flatten())
-        candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
-                                                             "Double", 
-                                                             self.lag.u.flatten())
-        candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
-                                                             "Double", 
-                                                             self.lag.predy_e.flatten())
-        candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
-                                                             "Double", 
-                                                             ePredOut.flatten())
+                                                             fieldData[i],
+                                                             alias = alias,
+                                                             checkNullValues = nullFlag)
         self.ssdo.output2NewFC(outputFC, candidateFields, 
-                               appendFields = self.allVars)
-
-        #### Set the Default Symbology ####
-        params = ARCPY.gp.GetParameterInfo() 
-        try:
-            renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
-            if renderType == 0:
-                renderLayerFile = "ResidPoints.lyr"
-            elif renderType == 1:
-                renderLayerFile = "ResidPolylines.lyr"
-            else:
-                renderLayerFile = "ResidPolygons.lyr"
-            fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
-            params[4].Symbology = fullRLF
-        except:
-            ARCPY.AddIDMessage("WARNING", 973)
-
-if __name__ == '__main__':
-    setupParameters()
+                               appendFields = self.allVars,
+                               fieldOrder = FIELDNAMES)
 
