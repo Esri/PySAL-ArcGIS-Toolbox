@@ -725,10 +725,10 @@ class SpatialLag:
         weightsFile = UTILS.getTextParameter(3, parameters)
         outputFC = UTILS.getTextParameter(4, parameters)
         modelType = UTILS.getTextParameter(5, parameters).upper().replace(" ", "_")
-        kernelWeightType = UTILS.getTextParameter(6, parameters)
-        if kernelWeightType is None:
-            kernelWeightType = "UNIFORM"
-        kernelWeightNumNeighs = UTILS.getNumericParameter(7, parameters)
+        kernelType = UTILS.getTextParameter(6, parameters)
+        if kernelType is None:
+            kernelType = "UNIFORM"
+        kernelKNN = UTILS.getNumericParameter(7, parameters)
 
         #### Create SSDataObject ####
         fieldList = [depVarName] + indVarNames
@@ -743,8 +743,8 @@ class SpatialLag:
 
         lag = LAG.Lag_PySAL(ssdo, depVarName, indVarNames, patW, 
                             modelType=modelType, 
-                            kernelWeightType=kernelWeightType, 
-                            kernelWeightNumNeighs=kernelWeightNumNeighs)
+                            kernelType=kernelType, 
+                            kernelKNN=kernelKNN)
 
         #### Create Output ####
         lag.createOutput(outputFC)

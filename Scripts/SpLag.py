@@ -24,7 +24,7 @@ class Lag_PySAL(object):
 
     def __init__(self, ssdo, depVarName, indVarNames, patW, 
                  modelType = "GMM_COMBO", 
-                 kernelWeightType = "Uniform", kernelWeightNumNeighs=2):
+                 kernelType = "Uniform", kernelKNN = 2):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
@@ -110,15 +110,17 @@ class Lag_PySAL(object):
             import pysal.lib.weights as WEIGHTS
             self.w.transform = 'r'
             dataArray = self.ssdo.xyCoords
-            kernelWeights = WEIGHTS.Kernel(dataArray, fixed=True, 
-                                           function=self.kernelWeightType, diagonal=True)
+            kernelName = "{0} function with knn = {1}"
+            kernelName = kernelName.format(self.kernelType, self.kernelKNN)
+            kernelWeights = WEIGHTS.Kernel(dataArray, fixed = True, k = self.kernelKNN,
+                                           function = self.kernelType, diagonal = True)
             self.lag = PYSAL.model.spreg.GM_Lag(self.y, self.x, w = self.w, 
                                                 robust = 'hac', gwk = kernelWeights,
                                                 spat_diag = True, 
                                                 name_y = self.depVarName,
                                                 name_x = self.indVarNames, 
                                                 name_w = self.wName,
-                                                name_gwk = 'kernel_weights',
+                                                name_gwk = kernelName,
                                                 name_ds = self.ssdo.inputFC)
         else:
             self.lag = PYSAL.model.spreg.ML_Lag(self.y, self.x, self.w,
