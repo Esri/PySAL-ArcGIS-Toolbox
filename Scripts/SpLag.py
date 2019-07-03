@@ -23,7 +23,8 @@ class Lag_PySAL(object):
     """Computes SAR Lag linear regression via GMM/ML using PySAL."""
 
     def __init__(self, ssdo, depVarName, indVarNames, patW, 
-                 modelType = "GMM_COMBO", gwkW = None):
+                 modelType = "GMM_COMBO", 
+                 kernelWeightType = "Uniform", kernelWeightNumNeighs=2):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
@@ -32,12 +33,6 @@ class Lag_PySAL(object):
         if modelType not in MODELTYPES:
             ARCPY.AddError("The input model type {0} is not in {1}".format(modelType, 
                                                                            ", ".join(MODELTYPES)))
-            raise SystemExit()
-
-        #### Assure Kernel Weights for HAC ####
-        if modelType == "GMM_HAC" and gwkW is None:
-            m = "You must provide kernel weights matrix when using the HAC Estimator"
-            ARCPY.AddError(m)
             raise SystemExit()
 
         #### Initialize Data ####
@@ -98,10 +93,6 @@ class Lag_PySAL(object):
         self.w = self.patW.w
         self.wName = self.patW.wName
 
-        if self.gwkW is not None:
-            self.gwk = self.gwkW.w
-            self.gwkName = self.gwkW.wName
-
     def calculate(self):
         """Performs GM Error Model and related diagnostics."""
 
@@ -116,13 +107,18 @@ class Lag_PySAL(object):
                                                 name_w = self.wName,
                                                 name_ds = self.ssdo.inputFC)
         elif self.modelType == "GMM_HAC":
+            import pysal.lib.weights as WEIGHTS
+            self.w.transform = 'r'
+            dataArray = self.ssdo.xyCoords
+            kernelWeights = WEIGHTS.Kernel(dataArray, fixed=True, 
+                                           function=self.kernelWeightType, diagonal=True)
             self.lag = PYSAL.model.spreg.GM_Lag(self.y, self.x, w = self.w, 
-                                                robust = 'hac', gwk = self.gwk,
+                                                robust = 'hac', gwk = kernelWeights,
                                                 spat_diag = True, 
                                                 name_y = self.depVarName,
                                                 name_x = self.indVarNames, 
                                                 name_w = self.wName,
-                                                name_gwk = self.gwkName,
+                                                name_gwk = 'kernel_weights',
                                                 name_ds = self.ssdo.inputFC)
         else:
             self.lag = PYSAL.model.spreg.ML_Lag(self.y, self.x, self.w,

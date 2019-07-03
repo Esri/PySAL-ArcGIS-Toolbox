@@ -27,7 +27,7 @@ class Toolbox(object):
     def __init__(self):
         self.label = "Python Spatial Analysis Library (PySAL)"
         self.alias = "pysal"
-        self.tools = [ContiguityWeights, DistanceWeights, KernelWeights,
+        self.tools = [ContiguityWeights, DistanceWeights,
                       OLS, SpatialError, SpatialLag]
 
 class ContiguityWeights:
@@ -331,86 +331,86 @@ class DistanceWeights:
         distW.createOutput(rowStandard)
        
         
-class KernelWeights:
-    def __init__(self):
-        self.label = "Create Kernel-Based Spatial Weights"
-        self.description = ""
-        self.category = "Spatial Weights Tools"
-        self.canRunInBackground = False
+# class KernelWeights:
+#     def __init__(self):
+#         self.label = "Create Kernel-Based Spatial Weights"
+#         self.description = ""
+#         self.category = "Spatial Weights Tools"
+#         self.canRunInBackground = False
 
-    def getParameterInfo(self):
-        param0 = ARCPY.Parameter(displayName="Input Feature Class",
-                            name = "Input_Feature_Class",
-                            datatype = "DEFeatureClass",
-                            parameterType = "Required",
-                            direction = "Input")
+#     def getParameterInfo(self):
+#         param0 = ARCPY.Parameter(displayName="Input Feature Class",
+#                             name = "Input_Feature_Class",
+#                             datatype = "DEFeatureClass",
+#                             parameterType = "Required",
+#                             direction = "Input")
 
-        param1 = ARCPY.Parameter(displayName="Unique ID Field",
-                            name = "Unique_ID_Field",
-                            datatype = "Field",
-                            parameterType = "Required",
-                            direction = "Input")
+#         param1 = ARCPY.Parameter(displayName="Unique ID Field",
+#                             name = "Unique_ID_Field",
+#                             datatype = "Field",
+#                             parameterType = "Required",
+#                             direction = "Input")
 
-        param1.filter.list = ['Short','Long']
+#         param1.filter.list = ['Short','Long']
 
-        param1.parameterDependencies = ["Input_Feature_Class"]
+#         param1.parameterDependencies = ["Input_Feature_Class"]
 
-        param2 = ARCPY.Parameter(displayName="Output Spatial Weights Matrix File",
-                                 name = "Output_Spatial_Weights_Matrix_File",
-                                 datatype = "DEFile",
-                                 parameterType = "Required",
-                                 direction = "Output")
-        param2.filter.list = ['kwt']
+#         param2 = ARCPY.Parameter(displayName="Output Spatial Weights Matrix File",
+#                                  name = "Output_Spatial_Weights_Matrix_File",
+#                                  datatype = "DEFile",
+#                                  parameterType = "Required",
+#                                  direction = "Output")
+#         param2.filter.list = ['kwt']
 
-        param3 = ARCPY.Parameter(displayName="Kernel Function",
-                            name = "Kernel_Function",
-                            datatype = "GPString",
-                            parameterType = "Optional",
-                            direction = "Input")
+#         param3 = ARCPY.Parameter(displayName="Kernel Function",
+#                             name = "Kernel_Function",
+#                             datatype = "GPString",
+#                             parameterType = "Optional",
+#                             direction = "Input")
 
-        param3.filter.type = "ValueList"
-        param3.filter.list = ["Uniform", "Triangular", "Quadratic", "Quartic", "Gaussian"]
-        param3.value = "Uniform"
+#         param3.filter.type = "ValueList"
+#         param3.filter.list = ["Uniform", "Triangular", "Quadratic", "Quartic", "Gaussian"]
+#         param3.value = "Uniform"
 
-        param4 = ARCPY.Parameter(displayName="Number of Neighbors",
-                                 name = "Number_of_Neighbors",
-                                 datatype = "GPLong",
-                                 parameterType = "Optional",
-                                 direction = "Input")
-        param4.filter.type = "Range"
-        param4.value = 1
-        param4.filter.list = [1, 99]
+#         param4 = ARCPY.Parameter(displayName="Number of Neighbors",
+#                                  name = "Number_of_Neighbors",
+#                                  datatype = "GPLong",
+#                                  parameterType = "Optional",
+#                                  direction = "Input")
+#         param4.filter.type = "Range"
+#         param4.value = 1
+#         param4.filter.list = [1, 99]
 
-        return [param0,param1,param2,param3,param4]
+#         return [param0,param1,param2,param3,param4]
 
-    def updateParameters(self, parameters):
-        pass
+#     def updateParameters(self, parameters):
+#         pass
 
-    def updateMessages(self, parameters):
-        pass
+#     def updateMessages(self, parameters):
+#         pass
 
-    def execute(self, parameters, messages):
-        import SSUtilities as UTILS
-        import KernelWeightsCreator as KERNEL
+#     def execute(self, parameters, messages):
+#         import SSUtilities as UTILS
+#         import KernelWeightsCreator as KERNEL
 
 
-        inputFC = UTILS.getTextParameter(0, parameters)
-        idField = UTILS.getTextParameter(1, parameters)
-        outputFile = UTILS.getTextParameter(2, parameters)
-        kernelType = UTILS.getTextParameter(3, parameters)
-        if kernelType is None:
-            kernelType = "UNIFORM"
+#         inputFC = UTILS.getTextParameter(0, parameters)
+#         idField = UTILS.getTextParameter(1, parameters)
+#         outputFile = UTILS.getTextParameter(2, parameters)
+#         kernelType = UTILS.getTextParameter(3, parameters)
+#         if kernelType is None:
+#             kernelType = "UNIFORM"
 
-        numNeighs = UTILS.getNumericParameter(4, parameters)
-        if numNeighs is None:
-            numNeighs = 1
+#         numNeighs = UTILS.getNumericParameter(4, parameters)
+#         if numNeighs is None:
+#             numNeighs = 1
 
-        #### Run Cont Weights Creation ####
-        contW = KERNEL.KernelW_PySAL(inputFC, outputFile, idField, kernelType,
-                                     numNeighs)
+#         #### Run Cont Weights Creation ####
+#         contW = KERNEL.KernelW_PySAL(inputFC, outputFile, idField, kernelType,
+#                                      numNeighs)
     
-        #### Create Output ####
-        contW.createOutput()
+#         #### Create Output ####
+#         contW.createOutput()
 
 class OLS:
     def __init__(self):
@@ -676,35 +676,40 @@ class SpatialLag:
         param5.filter.list = ['GMM Combo','GMM HAC','ML']
         param5.value = 'GMM Combo'
 
-        param6 = ARCPY.Parameter(displayName="Input Kernel Weights Matrix File",
-                            name = "Input_Kernel_Weights_Matrix_File",
-                            datatype = "DEFile",
+        param6 = ARCPY.Parameter(displayName="Kernel Function",
+                            name = "Kernel_Function",
+                            datatype = "GPString",
                             parameterType = "Optional",
                             direction = "Input")
-        param6.filter.list = ['kwt']
-        param6.enabled = False
 
-        return [param0,param1,param2,param3,param4,param5,param6]
+        param6.filter.type = "ValueList"
+        param6.filter.list = ["Uniform", "Triangular", "Quadratic", "Quartic", "Gaussian"]
+        param6.value = "Uniform"
+
+        param7 = ARCPY.Parameter(displayName="Number of Neighbors",
+                                 name = "Number_of_Neighbors",
+                                 datatype = "GPLong",
+                                 parameterType = "Optional",
+                                 direction = "Input")
+        param7.filter.type = "Range"
+        param7.value = 2
+        param7.filter.list = [1, 99]
+
+        return [param0,param1,param2,param3,param4,param5,param6,param7]
 
     def updateParameters(self, parameters):
         #### Enabled/Disable/Clear Kernel Weights for HAC ####
         if parameters[5].value:
             if parameters[5].value.upper() == "GMM HAC":
                 parameters[6].enabled = True
+                parameters[7].enabled = True
             else:
                 parameters[6].enabled = False
-                parameters[6].value = ""
+                parameters[7].enabled = False
 
         return
 
     def updateMessages(self, parameters):
-        #### Make Kernel Weights Required if HAC ####
-        if parameters[5].value:
-            if parameters[5].value.upper() == "GMM HAC":
-                if not parameters[6].value:
-                    msg = "You must provide kernel weights (*kwt) file when using the HAC Estimator"
-                    parameters[6].setErrorMessage(msg)
-
         return
 
     def execute(self, parameters, messages):
@@ -720,7 +725,10 @@ class SpatialLag:
         weightsFile = UTILS.getTextParameter(3, parameters)
         outputFC = UTILS.getTextParameter(4, parameters)
         modelType = UTILS.getTextParameter(5, parameters).upper().replace(" ", "_")
-        kernelFile = UTILS.getTextParameter(6, parameters)
+        kernelWeightType = UTILS.getTextParameter(6, parameters)
+        if kernelWeightType is None:
+            kernelWeightType = "UNIFORM"
+        kernelWeightNumNeighs = UTILS.getNumericParameter(7, parameters)
 
         #### Create SSDataObject ####
         fieldList = [depVarName] + indVarNames
@@ -732,12 +740,11 @@ class SpatialLag:
 
         #### Create Weights ####
         patW = AUTILS.PAT_W(ssdo, weightsFile)
-        if kernelFile is not None:
-            gwkW = AUTILS.PAT_W(ssdo, kernelFile)
-        else:
-            gwkW = None
 
-        lag = LAG.Lag_PySAL(ssdo, depVarName, indVarNames, patW, modelType, gwkW)
+        lag = LAG.Lag_PySAL(ssdo, depVarName, indVarNames, patW, 
+                            modelType=modelType, 
+                            kernelWeightType=kernelWeightType, 
+                            kernelWeightNumNeighs=kernelWeightNumNeighs)
 
         #### Create Output ####
         lag.createOutput(outputFC)
