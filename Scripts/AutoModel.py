@@ -14,75 +14,28 @@ import sys as SYS
 import pysal2ArcUtils as AUTILS
 
 # OLS Error result uses first 2, Lag result uses all 4
-FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Predy"]
+FIELDNAMES = ["Predy", "Resid", "Predy_e", "e_Pred"]
+FIELDALIAS = ["Predicted {0}", "Residual", "Predicted {0} (Reduced Form)",
+              "Prediced Error (Reduced Form)"]
 
-def setupParameters():
-
-    #### Get User Provided Inputs ####
-    inputFC = ARCPY.GetParameterAsText(0)
-    depVarName = ARCPY.GetParameterAsText(1).upper()
-    indVarNames = ARCPY.GetParameterAsText(2).upper()
-    indVarNames = indVarNames.split(";")
-    weightsFile = ARCPY.GetParameterAsText(3)
-    kernelWeightsFile = ARCPY.GetParameterAsText(4)
-    pValue = ARCPY.GetParameter(5)
-    useCombo = ARCPY.GetParameter(6)
-    outputFC = ARCPY.GetParameterAsText(7)
-
-    #### Create SSDataObject ####
-    fieldList = [depVarName] + indVarNames
-    ssdo = SSDO.SSDataObject(inputFC, templateFC = outputFC)
-    
-    #### Setup masterField for ssdo from Model weights file ####
-    masterField1 = AUTILS.setUniqueIDField(ssdo, weightsFile)
-    if masterField1 == None:
-        ARCPY.AddError("The Model weights file format is not valid.")
-        raise SystemExit()
-        
-    #### Setup masterField for ssdo from Kernel weights file ####
-    masterField2 = None
-    wType = kernelWeightsFile[-3:].lower()
-    if wType == "kwt" or wType == "swm":
-        masterField2 = AUTILS.setUniqueIDField(ssdo, kernelWeightsFile)
-    if masterField2 == None:
-        ARCPY.AddError("The Kernel weights file format is not valid.")
-        raise SystemExit()
-    
-    #### Detect if Two Weights Files Are Matched (Same Unique Field) ####
-    if masterField1 != masterField2:
-        ARCPY.AddError("The Model weights file and Kernel weights file have "
-                       "different unique ID fields.")
-        raise SystemExit()
-    
-    #### Populate SSDO with Data ####
-    ssdo.obtainData(masterField1, fieldList) 
-
-    #### Resolve Weights File ####
-    patW = None
-    patKW = None
-    try:
-        patW = AUTILS.PAT_W(ssdo, weightsFile)
-        patKW = AUTILS.PAT_W(ssdo, kernelWeightsFile)
-    except:
-        ARCPY.AddError("There is an error occurred when read weights files.")
-        raise SystemExit()
-
-    #### Run AutoSpace ####
-    auto = AutoSpace_PySAL(ssdo, depVarName, indVarNames, patW, patKW, pValue,
-                           useCombo)
-
-    #### Create Output ####
-    auto.createOutput(outputFC)
-
+MODELTYPES = ["GMM_COMBO", "GMM_HAC"]
 
 class AutoSpace_PySAL(object):
     """Computes linear regression via Ordinary Least Squares using PySAL."""
 
-    def __init__(self, ssdo, depVarName, indVarNames, patW, patKW, 
-                 pValue = 0.01, useCombo = False):
+    def __init__(self, ssdo, depVarName, indVarNames, patW,  
+                 pValue = 0.1, modelType = "GMM_COMBO", 
+                 kernelType = "Uniform", kernelKNN = 2):
 
         #### Set Initial Attributes ####
         UTILS.assignClassAttr(self, locals())
+
+        #### Validate Model Type ####
+        if modelType not in MODELTYPES:
+            ARCPY.AddError("The input model type {0} is not in {1}".format(modelType, 
+                                                                           ", ".join(MODELTYPES)))
+            raise SystemExit()
+        self.useCombo = modelType == "GMM_COMBO"
 
         #### Initialize Data ####
         self.initialize()
@@ -152,8 +105,20 @@ class AutoSpace_PySAL(object):
         #### Set Weights Info ####
         self.w = self.patW.w
         self.wName = self.patW.wName
-        self.gwk = self.patKW.w
-        self.gwkName = self.patKW.wName
+
+        if self.modelType == "GMM_HAC":
+            import pysal.lib.weights as WEIGHTS
+            self.w.transform = 'r'
+            dataArray = self.ssdo.xyCoords
+            kernelName = "{0} function with knn = {1}"
+            kernelName = kernelName.format(self.kernelType, self.kernelKNN)
+            kernelWeights = WEIGHTS.Kernel(dataArray, fixed = True, k = self.kernelKNN,
+                                           function = self.kernelType, diagonal = True)
+            self.gwk = kernelWeights
+            self.gwkName = kernelName
+        else:
+            self.gwk = None
+            self.gwkName = None
 
     def calculate(self):
         """Performs Auto Model and related diagnostics."""
@@ -234,40 +199,34 @@ class AutoSpace_PySAL(object):
         #### Build fields for output table ####
         self.templateDir = OS.path.dirname(SYS.argv[0])
         candidateFields = {}
+        fieldOrder = FIELDNAMES[0:2]
+        alias = FIELDALIAS[0].format(self.depVarName)
         candidateFields[FIELDNAMES[0]] = SSDO.CandidateField(FIELDNAMES[0],
                                                              "Double", 
-                                                             self.oPredy)
+                                                             self.oPredy.ravel(),
+                                                             alias = alias)
+        alias = FIELDALIAS[1]
         candidateFields[FIELDNAMES[1]] = SSDO.CandidateField(FIELDNAMES[1],
                                                              "Double", 
-                                                             self.oResid)
+                                                             self.oResid.ravel(),
+                                                             alias = alias)
         if self.oPredy_e is not None: 
+            fieldOrder = FIELDNAMES
+            alias = FIELDALIAS[2].format(self.depVarName)
             candidateFields[FIELDNAMES[2]] = SSDO.CandidateField(FIELDNAMES[2],
                                                                  "Double", 
-                                                                 self.oPredy_e)
+                                                                 self.oPredy_e.ravel(),
+                                                                 alias = alias)
         if self.oE_Predy is not None:
+            alias = FIELDALIAS[3]
             candidateFields[FIELDNAMES[3]] = SSDO.CandidateField(FIELDNAMES[3],
                                                                  "Double", 
-                                                                 self.oE_Predy)
+                                                                 self.oE_Predy.ravel(),
+                                                                 alias = alias)
 
         self.ssdo.output2NewFC(outputFC, candidateFields, 
-                               appendFields = self.allVars)
-
-        #### Set the Default Symbology ####
-        params = ARCPY.gp.GetParameterInfo()
-        try:
-            renderType = UTILS.renderType[self.ssdo.shapeType.upper()]
-            if renderType == 0:
-                renderLayerFile = "ResidPoints.lyr"
-            elif renderType == 1:
-                renderLayerFile = "ResidPolylines.lyr"
-            else:
-                renderLayerFile = "ResidPolygons.lyr"
-            if FIELDNAMES[0].startswith('Het'):
-                renderLayerFile = "Het" + renderLayerFile
-            fullRLF = OS.path.join(self.templateDir, "Layers", renderLayerFile)
-            params[7].Symbology = fullRLF
-        except:
-            ARCPY.AddIDMessage("WARNING", 973)
+                               appendFields = self.allVars,
+                               fieldOrder = fieldOrder)
 
 if __name__ == '__main__':
     setupParameters()

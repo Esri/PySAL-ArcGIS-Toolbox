@@ -9,11 +9,8 @@ import SSDataObject as SSDO
 import SSUtilities as UTILS
 import WeightsUtilities as WU
 import locale as LOCALE
+import pysal as PYSAL
 from pysal.lib.weights import W
-from spreg import ols
-from spreg import twosls_sp
-from spreg import error_sp_hom
-from spreg import error_sp_het
 
 class PAT_W(object):
     """Wrapper Class for adding attributes to PySAL W for toolkit"""
@@ -415,10 +412,10 @@ def autospace(y,x,w,gwk,opvalue=0.01,combo=False,name_y=None,name_x=None,
     results = {}
     results['spatial error']=False
     results['spatial lag']=False
-    r1 = ols.OLS(y,x,w=w,gwk=gwk,spat_diag=True,
-                 name_y=name_y,name_x=name_x,
-                 name_w=name_w,name_gwk=name_gwk,
-                 name_ds=name_ds)
+    r1 = PYSAL.model.spreg.OLS(y,x,w=w,gwk=gwk,spat_diag=True,
+                               name_y=name_y,name_x=name_x,
+                               name_w=name_w,name_gwk=name_gwk,
+                               name_ds=name_ds)
     results['regression1'] = r1
     Het = r1.koenker_bassett['pvalue']
     if Het < opvalue:
@@ -429,43 +426,44 @@ def autospace(y,x,w,gwk,opvalue=0.01,combo=False,name_y=None,name_x=None,
     model = lmChoice(r1, opvalue)
     if model == "MIXED":
         if not combo:
-            r2 = twosls_sp.GM_Lag(y,x,w=w,gwk=gwk,robust='hac',name_y=name_y,
-                                  name_x=name_x,name_w=name_w,name_gwk=name_gwk,
-                                  name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Lag(y,x,w=w,gwk=gwk,robust='hac',spat_diag = True,
+                                          name_y=name_y, name_x=name_x,
+                                          name_w=name_w,name_gwk=name_gwk,
+                                          name_ds=name_ds)
             results['final model']="Spatial Lag with Spatial Error - HAC"
         elif Hetflag:
-            r2 = error_sp_het.GM_Combo_Het(y,x,w=w,name_y=name_y,name_x=name_x,
-                                           name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Combo_Het(y,x,w=w,name_y=name_y,name_x=name_x,
+                                                name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Lag with Spatial Error - Heteroskedastic"
         else:
-            r2 = error_sp_hom.GM_Combo_Hom(y,x,w=w,name_y=name_y,name_x=name_x,
-                                           name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Combo_Hom(y,x,w=w,name_y=name_y,name_x=name_x,
+                                                name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Lag with Spatial Error - Homoskedastic"
     elif model == "ERROR":
         results['spatial error']=True
         if Hetflag:
-            r2 = error_sp_het.GM_Error_Het(y,x,w,name_y=name_y,name_x=name_x,
-                                           name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Error_Het(y,x,w,name_y=name_y,name_x=name_x,
+                                                name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Error - Heteroskedastic"
         else:
-            r2 = error_sp_hom.GM_Error_Hom(y,x,w,name_y=name_y,name_x=name_x,
-                                           name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Error_Hom(y,x,w,name_y=name_y,name_x=name_x,
+                                                name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Error - Homoskedastic"
     elif model == "LAG":
         results['spatial lag']=True
         if Hetflag:
-            r2 = twosls_sp.GM_Lag(y,x,w=w,robust='white',
-                                  name_y=name_y,name_x=name_x,
-                                  name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Lag(y,x,w=w,robust='white',
+                                          name_y=name_y,name_x=name_x,
+                                          name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Lag - Heteroskedastic"
         else:
-            r2 = twosls_sp.GM_Lag(y,x,w=w,name_y=name_y,name_x=name_x,
-                                  name_w=name_w,name_ds=name_ds)
+            r2 = PYSAL.model.spreg.GM_Lag(y,x,w=w,name_y=name_y,name_x=name_x,
+                                          name_w=name_w,name_ds=name_ds)
             results['final model']="Spatial Lag - Homoskedastic"
     else:
         if Hetflag:
-            r2 = ols.OLS(y,x,robust='white',name_y=name_y,name_x=name_x,
-                         name_ds=name_ds)
+            r2 = PYSAL.model.spreg.OLS(y,x,robust='white',name_y=name_y,name_x=name_x,
+                                       name_ds=name_ds)
             results['final model']="No Space - Heteroskedastic"
         else:
             r2 = r1
